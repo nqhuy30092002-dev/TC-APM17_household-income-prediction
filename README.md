@@ -11,7 +11,7 @@
 
 ## 🎯 Overview
 
-Dự án phân tích các yếu tố nhân khẩu học và kinh tế xã hội ảnh hưởng đến thu nhập hộ gia đình, huấn luyện mô hình **Random Forest Regressor**, và triển khai dưới dạng web app tương tác.
+The project analyzes demographic and socioeconomic factors affecting household income, trains a **Random Forest Regressor** model, and deploys it as an interactive web application.
 
 **Dataset:** [Kaggle - Regression Dataset for Household Income Analysis](https://www.kaggle.com/datasets/stealthtechnologies/regression-dataset-for-household-income-analysis)
 
