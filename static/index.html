@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Household Income Predictor | AI-Powered Income Analysis</title>
+    <meta name="description" content="Predict household income using advanced machine learning models based on demographic and socioeconomic factors.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">IncomePredict<span class="logo-ai">AI</span></span>
+            </a>
+            <div class="nav-links">
+                <a href="#hero" class="nav-link active" data-section="hero">Home</a>
+                <a href="#predictor" class="nav-link" data-section="predictor">Dự Đoán</a>
+                <a href="#insights" class="nav-link" data-section="insights">Phân Tích</a>
+                <a href="#model" class="nav-link" data-section="model">Mô Hình</a>
+            </div>
+            <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-badge">🤖 Powered by Machine Learning</div>
+            <h1 class="hero-title">
+                <span class="hero-title-line">Dự Đoán Thu Nhập</span>
+                <span class="hero-title-gradient">Hộ Gia Đình</span>
+            </h1>
+            <p class="hero-description">
+                Sử dụng trí tuệ nhân tạo và các mô hình Machine Learning tiên tiến để dự đoán 
+                thu nhập hàng năm dựa trên các yếu tố nhân khẩu học và kinh tế xã hội.
+            </p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-value" id="statDatapoints">10,000+</span>
+                    <span class="hero-stat-label">Điểm dữ liệu</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value" id="statAccuracy">--</span>
+                    <span class="hero-stat-label">R² Score</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value">13</span>
+                    <span class="hero-stat-label">Đặc trưng</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value">5</span>
+                    <span class="hero-stat-label">Mô hình ML</span>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <a href="#predictor" class="btn btn-primary btn-glow">
+                    <span>🎯 Bắt Đầu Dự Đoán</span>
+                </a>
+                <a href="#insights" class="btn btn-secondary">
+                    <span>📈 Xem Phân Tích</span>
+                </a>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="hero-card-stack">
+                <div class="floating-card card-1">
+                    <div class="card-icon">💰</div>
+                    <div class="card-label">Avg Income</div>
+                    <div class="card-value" id="cardAvgIncome">--</div>
+                </div>
+                <div class="floating-card card-2">
+                    <div class="card-icon">🎓</div>
+                    <div class="card-label">Education Impact</div>
+                    <div class="card-value">High</div>
+                </div>
+                <div class="floating-card card-3">
+                    <div class="card-icon">🏠</div>
+                    <div class="card-label">Housing Effect</div>
+                    <div class="card-value">Significant</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Predictor Section -->
+    <section class="predictor-section" id="predictor">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">🎯 Prediction Engine</span>
+                <h2 class="section-title">Dự Đoán Thu Nhập</h2>
+                <p class="section-subtitle">Nhập thông tin hộ gia đình để nhận dự đoán thu nhập hàng năm từ mô hình AI</p>
+            </div>
+
+            <div class="predictor-layout">
+                <!-- Input Form -->
+                <div class="predictor-form-wrapper">
+                    <form class="predictor-form" id="predictionForm">
+                        <div class="form-grid">
+                            <!-- Demographic Group -->
+                            <div class="form-group-header">
+                                <span class="group-icon">👤</span>
+                                <span>Thông Tin Cá Nhân</span>
+                            </div>
+                            
+                            <div class="form-field" id="field-age">
+                                <label for="age">Tuổi</label>
+                                <div class="input-wrapper">
+                                    <input type="range" id="age" min="18" max="70" value="35" class="range-input">
+                                    <span class="range-value" id="ageValue">35</span>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-gender">
+                                <label for="gender">Giới tính</label>
+                                <div class="select-wrapper">
+                                    <select id="gender">
+                                        <option value="Female">Nữ</option>
+                                        <option value="Male">Nam</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-education">
+                                <label for="education">Trình độ học vấn</label>
+                                <div class="select-wrapper">
+                                    <select id="education">
+                                        <option value="High School">Trung học</option>
+                                        <option value="Bachelor's">Cử nhân</option>
+                                        <option value="Master's">Thạc sĩ</option>
+                                        <option value="Doctorate">Tiến sĩ</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-maritalStatus">
+                                <label for="maritalStatus">Tình trạng hôn nhân</label>
+                                <div class="select-wrapper">
+                                    <select id="maritalStatus">
+                                        <option value="Single">Độc thân</option>
+                                        <option value="Married">Đã kết hôn</option>
+                                        <option value="Divorced">Ly hôn</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Work Group -->
+                            <div class="form-group-header">
+                                <span class="group-icon">💼</span>
+                                <span>Thông Tin Nghề Nghiệp</span>
+                            </div>
+
+                            <div class="form-field" id="field-occupation">
+                                <label for="occupation">Ngành nghề</label>
+                                <div class="select-wrapper">
+                                    <select id="occupation">
+                                        <option value="Technology">Công nghệ</option>
+                                        <option value="Finance">Tài chính</option>
+                                        <option value="Healthcare">Y tế</option>
+                                        <option value="Education">Giáo dục</option>
+                                        <option value="Others">Khác</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-employmentStatus">
+                                <label for="employmentStatus">Loại hình việc làm</label>
+                                <div class="select-wrapper">
+                                    <select id="employmentStatus">
+                                        <option value="Full-time">Toàn thời gian</option>
+                                        <option value="Part-time">Bán thời gian</option>
+                                        <option value="Self-employed">Tự kinh doanh</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-workExperience">
+                                <label for="workExperience">Kinh nghiệm (năm)</label>
+                                <div class="input-wrapper">
+                                    <input type="range" id="workExperience" min="0" max="50" value="10" class="range-input">
+                                    <span class="range-value" id="workExperienceValue">10</span>
+                                </div>
+                            </div>
+
+                            <!-- Household Group -->
+                            <div class="form-group-header">
+                                <span class="group-icon">🏠</span>
+                                <span>Thông Tin Hộ Gia Đình</span>
+                            </div>
+
+                            <div class="form-field" id="field-householdSize">
+                                <label for="householdSize">Quy mô hộ gia đình</label>
+                                <div class="input-wrapper">
+                                    <input type="range" id="householdSize" min="1" max="7" value="3" class="range-input">
+                                    <span class="range-value" id="householdSizeValue">3</span>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-dependents">
+                                <label for="dependents">Số người phụ thuộc</label>
+                                <div class="input-wrapper">
+                                    <input type="range" id="dependents" min="0" max="5" value="1" class="range-input">
+                                    <span class="range-value" id="dependentsValue">1</span>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-location">
+                                <label for="location">Khu vực</label>
+                                <div class="select-wrapper">
+                                    <select id="location">
+                                        <option value="Urban">Thành thị</option>
+                                        <option value="Suburban">Ngoại ô</option>
+                                        <option value="Rural">Nông thôn</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-homeownership">
+                                <label for="homeownership">Sở hữu nhà</label>
+                                <div class="select-wrapper">
+                                    <select id="homeownership">
+                                        <option value="Own">Sở hữu</option>
+                                        <option value="Rent">Thuê</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-housingType">
+                                <label for="housingType">Loại nhà ở</label>
+                                <div class="select-wrapper">
+                                    <select id="housingType">
+                                        <option value="Apartment">Chung cư</option>
+                                        <option value="Single-family home">Nhà riêng</option>
+                                        <option value="Townhouse">Nhà phố</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field" id="field-transportation">
+                                <label for="transportation">Phương tiện đi lại chính</label>
+                                <div class="select-wrapper">
+                                    <select id="transportation">
+                                        <option value="Car">Ô tô</option>
+                                        <option value="Public transit">Phương tiện công cộng</option>
+                                        <option value="Biking">Xe đạp</option>
+                                        <option value="Walking">Đi bộ</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-predict btn-glow" id="predictBtn">
+                            <span class="btn-icon">🔮</span>
+                            <span>Dự Đoán Thu Nhập</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Result Panel -->
+                <div class="predictor-result-wrapper">
+                    <div class="result-panel" id="resultPanel">
+                        <div class="result-placeholder" id="resultPlaceholder">
+                            <div class="placeholder-icon">🎯</div>
+                            <h3>Sẵn sàng dự đoán</h3>
+                            <p>Điền thông tin và nhấn "Dự Đoán Thu Nhập" để xem kết quả</p>
+                        </div>
+                        <div class="result-content" id="resultContent" style="display:none">
+                            <div class="result-header">
+                                <span class="result-badge">Kết quả dự đoán</span>
+                                <div class="result-confidence" id="resultConfidence">
+                                    <span class="confidence-label">Mô hình:</span>
+                                    <span class="confidence-value" id="modelUsed">--</span>
+                                </div>
+                            </div>
+                            <div class="result-income-display">
+                                <div class="income-label">Thu nhập hàng năm dự kiến</div>
+                                <div class="income-value" id="predictedIncome">$0</div>
+                                <div class="income-monthly" id="predictedMonthly">~$0/tháng</div>
+                            </div>
+                            <div class="result-breakdown" id="resultBreakdown">
+                                <!-- Dynamic content -->
+                            </div>
+                            <div class="result-factors" id="resultFactors">
+                                <!-- Dynamic factor analysis -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="quick-stats">
+                        <div class="quick-stat" id="qsMedian">
+                            <div class="qs-icon">📊</div>
+                            <div class="qs-info">
+                                <div class="qs-value" id="qsMedianValue">--</div>
+                                <div class="qs-label">Thu nhập trung vị</div>
+                            </div>
+                        </div>
+                        <div class="quick-stat" id="qsMean">
+                            <div class="qs-icon">📈</div>
+                            <div class="qs-info">
+                                <div class="qs-value" id="qsMeanValue">--</div>
+                                <div class="qs-label">Thu nhập trung bình</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Insights Section -->
+    <section class="insights-section" id="insights">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">📈 Data Insights</span>
+                <h2 class="section-title">Phân Tích Dữ Liệu</h2>
+                <p class="section-subtitle">Khám phá các yếu tố ảnh hưởng đến thu nhập hộ gia đình từ 10,000 bản ghi</p>
+            </div>
+
+            <!-- Summary Stats Row -->
+            <div class="stats-row" id="summaryStatsRow">
+                <div class="stat-card">
+                    <div class="stat-card-icon">📋</div>
+                    <div class="stat-card-value" id="statTotalRecords">10,000</div>
+                    <div class="stat-card-label">Tổng bản ghi</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon">💰</div>
+                    <div class="stat-card-value" id="statMeanIncome">--</div>
+                    <div class="stat-card-label">Thu nhập TB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon">📊</div>
+                    <div class="stat-card-value" id="statMedianIncome">--</div>
+                    <div class="stat-card-label">Thu nhập trung vị</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon">📐</div>
+                    <div class="stat-card-value" id="statSkewness">--</div>
+                    <div class="stat-card-label">Skewness</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <!-- Income Distribution -->
+                <div class="chart-card chart-card-large">
+                    <div class="chart-card-header">
+                        <h3>💰 Phân Phối Thu Nhập (Income Distribution)</h3>
+                        <span class="insight-tag">Histogram</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartIncomeHist"></canvas>
+                    </div>
+                </div>
+
+                <!-- Log Income Distribution -->
+                <div class="chart-card chart-card-large">
+                    <div class="chart-card-header">
+                        <h3>📉 Phân Phối Log(Income) — Sau biến đổi</h3>
+                        <span class="insight-tag">Log Transform</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartLogIncomeHist"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income by Education -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>🎓 Thu Nhập theo Học Vấn</h3>
+                        <span class="insight-tag">Education</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartEducation"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income by Occupation -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>💼 Thu Nhập theo Ngành Nghề</h3>
+                        <span class="insight-tag">Occupation</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartOccupation"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income by Location -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>📍 Thu Nhập theo Khu Vực</h3>
+                        <span class="insight-tag">Location</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartLocation"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income by Employment -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>🏢 Thu Nhập theo Loại Việc Làm</h3>
+                        <span class="insight-tag">Employment</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartEmployment"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income by Gender -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>👤 Thu Nhập theo Giới Tính</h3>
+                        <span class="insight-tag">Gender</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartGender"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income by Marital Status -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>💍 Thu Nhập theo Hôn Nhân</h3>
+                        <span class="insight-tag">Marital Status</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartMarital"></canvas>
+                    </div>
+                </div>
+
+                <!-- Feature Importance (Random Forest) -->
+                <div class="chart-card chart-card-large">
+                    <div class="chart-card-header">
+                        <h3>🎯 Mức Độ Ảnh Hưởng — Random Forest</h3>
+                        <span class="insight-tag">Feature Importance</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartFeatureImportance"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income Percentiles -->
+                <div class="chart-card chart-card-large">
+                    <div class="chart-card-header">
+                        <h3>📈 Phân Vị Thu Nhập (Income Percentiles)</h3>
+                        <span class="insight-tag">Percentile Curve</span>
+                    </div>
+                    <div class="chart-card-body">
+                        <canvas id="chartPercentiles"></canvas>
+                    </div>
+                </div>
+
+                <!-- Education Distribution Doughnut -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>🎓 Phân Bố Học Vấn</h3>
+                        <span class="insight-tag">Doughnut</span>
+                    </div>
+                    <div class="chart-card-body chart-body-square">
+                        <canvas id="chartEduDist"></canvas>
+                    </div>
+                </div>
+
+                <!-- Occupation Distribution Doughnut -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>💼 Phân Bố Ngành Nghề</h3>
+                        <span class="insight-tag">Doughnut</span>
+                    </div>
+                    <div class="chart-card-body chart-body-square">
+                        <canvas id="chartOccDist"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Model Section — Random Forest Only -->
+    <section class="model-section" id="model">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">🧠 Random Forest</span>
+                <h2 class="section-title">Mô Hình Dự Đoán</h2>
+                <p class="section-subtitle">Random Forest Regressor — mô hình được chọn để dự đoán thu nhập hộ gia đình</p>
+            </div>
+
+            <!-- Single RF Model Card -->
+            <div class="rf-model-showcase">
+                <div class="rf-model-main">
+                    <div class="rf-model-icon">🌲</div>
+                    <h3>Random Forest Regressor</h3>
+                    <p class="rf-model-desc">Ensemble learning method sử dụng 300 decision trees với max_depth=20, được huấn luyện trên log-transformed income để xử lý phân phối lệch phải.</p>
+                </div>
+                <div class="rf-metrics-grid" id="rfMetricsGrid">
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">R² (log scale)</div>
+                        <div class="rf-metric-value good" id="rfR2Log">0.1472</div>
+                    </div>
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">CV R² (5-fold)</div>
+                        <div class="rf-metric-value good" id="rfCvR2">0.1527</div>
+                    </div>
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">MAE</div>
+                        <div class="rf-metric-value" id="rfMAE">$763,300</div>
+                    </div>
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">RMSE</div>
+                        <div class="rf-metric-value" id="rfRMSE">$1,846,157</div>
+                    </div>
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">Số cây (Trees)</div>
+                        <div class="rf-metric-value">300</div>
+                    </div>
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">Max Depth</div>
+                        <div class="rf-metric-value">20</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="methodology-card">
+                <div class="methodology-header">
+                    <h3>📐 Phương Pháp Luận</h3>
+                </div>
+                <div class="methodology-content">
+                    <div class="methodology-steps">
+                        <div class="method-step">
+                            <div class="step-number">01</div>
+                            <div class="step-content">
+                                <h4>Thu Thập & Khám Phá</h4>
+                                <p>10,000 bản ghi, 13 đặc trưng. Kiểm tra missing values, outliers, phân phối.</p>
+                            </div>
+                        </div>
+                        <div class="method-step">
+                            <div class="step-number">02</div>
+                            <div class="step-content">
+                                <h4>Tiền Xử Lý</h4>
+                                <p>Log-transform target (giảm skewness 2.98 → 1.35), Label Encoding, Feature Engineering.</p>
+                            </div>
+                        </div>
+                        <div class="method-step">
+                            <div class="step-number">03</div>
+                            <div class="step-content">
+                                <h4>Random Forest Training</h4>
+                                <p>300 trees, max_depth=20, 80/20 split, 5-fold cross-validation.</p>
+                            </div>
+                        </div>
+                        <div class="method-step">
+                            <div class="step-number">04</div>
+                            <div class="step-content">
+                                <h4>Triển Khai Web App</h4>
+                                <p>Export coefficients, JavaScript prediction engine chạy trực tiếp trên trình duyệt.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">IncomePredict<span class="logo-ai">AI</span></span>
+            </div>
+            <p class="footer-text">
+                Household Income Prediction | Powered by Random Forest
+            </p>
+            <p class="footer-credit">
+                Data Source: <a href="https://www.kaggle.com/datasets/stealthtechnologies/regression-dataset-for-household-income-analysis" target="_blank" rel="noopener">Kaggle - Regression Dataset for Household Income Analysis</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,131 @@
+{
+  "best_model_name": "Random Forest (Log)",
+  "web_model_name": "Ridge (Log-Transformed)",
+  "feature_columns": [
+    "Age",
+    "Number_of_Dependents",
+    "Work_Experience",
+    "Household_Size",
+    "Education_Level_encoded",
+    "Occupation_encoded",
+    "Location_encoded",
+    "Marital_Status_encoded",
+    "Employment_Status_encoded",
+    "Homeownership_Status_encoded",
+    "Type_of_Housing_encoded",
+    "Gender_encoded",
+    "Primary_Mode_of_Transportation_encoded",
+    "Age_WorkExp_Ratio",
+    "Dependents_per_HHSize"
+  ],
+  "categorical_columns": [
+    "Education_Level",
+    "Occupation",
+    "Location",
+    "Marital_Status",
+    "Employment_Status",
+    "Homeownership_Status",
+    "Type_of_Housing",
+    "Gender",
+    "Primary_Mode_of_Transportation"
+  ],
+  "numerical_columns": [
+    "Age",
+    "Number_of_Dependents",
+    "Work_Experience",
+    "Household_Size"
+  ],
+  "metrics": {
+    "R2": -0.0803,
+    "R2_log": 0.1472,
+    "MAE": 763299.89,
+    "RMSE": 1846156.92,
+    "MAPE": 139.69,
+    "CV_R2_Mean": 0.1527
+  },
+  "web_model_metrics": {
+    "R2": -0.1269,
+    "MAE": 779611.65
+  },
+  "feature_importance": {
+    "Age_WorkExp_Ratio": 0.170798,
+    "Work_Experience": 0.134003,
+    "Age": 0.122588,
+    "Dependents_per_HHSize": 0.088829,
+    "Occupation_encoded": 0.078112,
+    "Household_Size": 0.055808,
+    "Employment_Status_encoded": 0.053913,
+    "Education_Level_encoded": 0.048676,
+    "Number_of_Dependents": 0.047588,
+    "Type_of_Housing_encoded": 0.045018,
+    "Primary_Mode_of_Transportation_encoded": 0.045015,
+    "Location_encoded": 0.038568,
+    "Marital_Status_encoded": 0.029889,
+    "Homeownership_Status_encoded": 0.022561,
+    "Gender_encoded": 0.018635
+  },
+  "income_stats": {
+    "mean": 816838.17,
+    "median": 72943.0,
+    "min": 31044.0,
+    "max": 9992571.0,
+    "std": 1821089.33,
+    "q25": 68446.0,
+    "q75": 350667.5
+  },
+  "all_model_results": {
+    "Linear (Log)": {
+      "MAE": 779610.335,
+      "RMSE": 1885541.5602,
+      "R2": -0.1269,
+      "R2_log": 0.0326,
+      "MAPE": 123.6503,
+      "CV_R2_Mean": 0.0345,
+      "CV_R2_Std": 0.0049
+    },
+    "Ridge (Log)": {
+      "MAE": 779611.65,
+      "RMSE": 1885553.5077,
+      "R2": -0.1269,
+      "R2_log": 0.0326,
+      "MAPE": 123.6398,
+      "CV_R2_Mean": 0.0345,
+      "CV_R2_Std": 0.0049
+    },
+    "Lasso (Log)": {
+      "MAE": 779718.2524,
+      "RMSE": 1886037.1339,
+      "R2": -0.1275,
+      "R2_log": 0.0328,
+      "MAPE": 123.252,
+      "CV_R2_Mean": 0.0346,
+      "CV_R2_Std": 0.0044
+    },
+    "Random Forest (Log)": {
+      "MAE": 763299.8862,
+      "RMSE": 1846156.921,
+      "R2": -0.0803,
+      "R2_log": 0.1472,
+      "MAPE": 139.6909,
+      "CV_R2_Mean": 0.1527,
+      "CV_R2_Std": 0.0107
+    },
+    "Gradient Boosting (Log)": {
+      "MAE": 780186.2151,
+      "RMSE": 1869234.2494,
+      "R2": -0.1075,
+      "R2_log": 0.0471,
+      "MAPE": 140.9679,
+      "CV_R2_Mean": 0.0652,
+      "CV_R2_Std": 0.0151
+    }
+  },
+  "dataset_info": {
+    "total_rows": 10000,
+    "features": 15,
+    "categorical_features": 9,
+    "numerical_features": 4,
+    "train_size": 8000,
+    "test_size": 2000
+  }
+}

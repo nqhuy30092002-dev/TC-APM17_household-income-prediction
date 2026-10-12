@@ -1,0 +1,190 @@
+{
+  "type": "ridge_log",
+  "description": "Ridge Regression on log-transformed income",
+  "use_log_transform": true,
+  "coefficients": [
+    0.04253530666688964,
+    0.020152286802301092,
+    -0.13843128060522097,
+    0.024934239116344337,
+    0.011809387243861704,
+    -0.0036528964936023084,
+    -0.12509135570708013,
+    -0.017580621741845794,
+    -0.010208346775588155,
+    0.21546367765529173,
+    -0.07132573028054498,
+    0.0005535760158610887,
+    -0.0012713605458191833,
+    -0.1525733434016409,
+    0.02734073405499664
+  ],
+  "intercept": 12.05144657197641,
+  "scaler_mean": [
+    44.105875,
+    2.53325,
+    24.806375,
+    3.997625,
+    1.388875,
+    2.17175,
+    1.601375,
+    1.292375,
+    0.701875,
+    0.396625,
+    0.790375,
+    0.5115,
+    1.425625,
+    3.9472386867851474,
+    0.9494136904761905
+  ],
+  "scaler_scale": [
+    15.191746623886766,
+    1.7206523290601154,
+    14.623581447763575,
+    2.0062700115824392,
+    1.24294055946976,
+    1.3579403291382135,
+    0.6670630475262439,
+    0.6337522066036535,
+    0.7819824066914806,
+    0.48919690245850894,
+    0.741405664515048,
+    0.49986773250530986,
+    0.9111631903095077,
+    7.361922619240253,
+    1.085208256816594
+  ],
+  "feature_columns": [
+    "Age",
+    "Number_of_Dependents",
+    "Work_Experience",
+    "Household_Size",
+    "Education_Level_encoded",
+    "Occupation_encoded",
+    "Location_encoded",
+    "Marital_Status_encoded",
+    "Employment_Status_encoded",
+    "Homeownership_Status_encoded",
+    "Type_of_Housing_encoded",
+    "Gender_encoded",
+    "Primary_Mode_of_Transportation_encoded",
+    "Age_WorkExp_Ratio",
+    "Dependents_per_HHSize"
+  ],
+  "encoding_maps": {
+    "Education_Level": {
+      "Bachelor's": 0,
+      "Doctorate": 1,
+      "High School": 2,
+      "Master's": 3
+    },
+    "Occupation": {
+      "Education": 0,
+      "Finance": 1,
+      "Healthcare": 2,
+      "Others": 3,
+      "Technology": 4
+    },
+    "Location": {
+      "Rural": 0,
+      "Suburban": 1,
+      "Urban": 2
+    },
+    "Marital_Status": {
+      "Divorced": 0,
+      "Married": 1,
+      "Single": 2
+    },
+    "Employment_Status": {
+      "Full-time": 0,
+      "Part-time": 1,
+      "Self-employed": 2
+    },
+    "Homeownership_Status": {
+      "Own": 0,
+      "Rent": 1
+    },
+    "Type_of_Housing": {
+      "Apartment": 0,
+      "Single-family home": 1,
+      "Townhouse": 2
+    },
+    "Gender": {
+      "Female": 0,
+      "Male": 1
+    },
+    "Primary_Mode_of_Transportation": {
+      "Biking": 0,
+      "Car": 1,
+      "Public transit": 2,
+      "Walking": 3
+    }
+  },
+  "category_options": {
+    "Education_Level": [
+      "Bachelor's",
+      "Doctorate",
+      "High School",
+      "Master's"
+    ],
+    "Occupation": [
+      "Education",
+      "Finance",
+      "Healthcare",
+      "Others",
+      "Technology"
+    ],
+    "Location": [
+      "Rural",
+      "Suburban",
+      "Urban"
+    ],
+    "Marital_Status": [
+      "Divorced",
+      "Married",
+      "Single"
+    ],
+    "Employment_Status": [
+      "Full-time",
+      "Part-time",
+      "Self-employed"
+    ],
+    "Homeownership_Status": [
+      "Own",
+      "Rent"
+    ],
+    "Type_of_Housing": [
+      "Apartment",
+      "Single-family home",
+      "Townhouse"
+    ],
+    "Gender": [
+      "Female",
+      "Male"
+    ],
+    "Primary_Mode_of_Transportation": [
+      "Biking",
+      "Car",
+      "Public transit",
+      "Walking"
+    ]
+  },
+  "numerical_ranges": {
+    "Age": {
+      "min": 18,
+      "max": 70
+    },
+    "Number_of_Dependents": {
+      "min": 0,
+      "max": 5
+    },
+    "Work_Experience": {
+      "min": 0,
+      "max": 50
+    },
+    "Household_Size": {
+      "min": 1,
+      "max": 7
+    }
+  }
+}
