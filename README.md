@@ -11,7 +11,7 @@
 
 ## 🎯 Overview
 
-Dự án phân tích các yếu tố nhân khẩu học và kinh tế xã hội ảnh hưởng đến thu nhập hộ gia đình, huấn luyện mô hình **Random Forest Regressor**, và triển khai dưới dạng web app tương tác.
+The project analyzes demographic and socioeconomic factors affecting household income, trains a **Random Forest Regression** model, and deploys it as an interactive web application.
 
 **Dataset:** [Kaggle - Regression Dataset for Household Income Analysis](https://www.kaggle.com/datasets/stealthtechnologies/regression-dataset-for-household-income-analysis)
 
@@ -34,7 +34,7 @@ Household Income Prediction/
 │   └── data.csv                    # Raw dataset (10,000 records)
 │
 ├── 📂 notebooks/                   # Jupyter notebooks
-│   └── EDA.ipynb                   # Exploratory Data Analysis (10 sections)
+│   └── EDA.ipynb                   # EDA + Modeling pipeline (18 sections)
 │
 ├── 📂 src/                         # Source code modules
 │   ├── __init__.py                 # Package init
@@ -59,6 +59,7 @@ Household Income Prediction/
 ├── main.py                         # Application entry point (HTTP server)
 ├── analysis_and_model.py           # Original analysis & training script
 ├── generate_chart_data.py          # Script to generate chart_data.json
+├── generate_report.py              # Script to generate Word report (.docx)
 ├── requirements.txt                # Python dependencies
 ├── .gitignore                      # Git ignore rules
 └── README.md                       # This file
@@ -130,7 +131,37 @@ python main.py --no-browser       # Don't auto-open browser
 
 ### EDA Notebook
 
-For detailed visualizations and analysis, see [`notebooks/EDA.ipynb`](notebooks/EDA.ipynb).
+For detailed visualizations, analysis, and modeling pipeline, see [`notebooks/EDA.ipynb`](notebooks/EDA.ipynb).
+
+The notebook contains **18 sections** split into two parts:
+
+**Part I — Exploratory Data Analysis**
+
+| # | Section | Chart Type |
+|---|---------|------------|
+| 1 | Import & Load Data | — |
+| 2 | Data Overview & Quality | — |
+| 3 | Income Distribution | Histogram (raw + log) |
+| 4 | Education Level Analysis | Box Plot |
+| 5 | Occupation Analysis | Grouped Bar (Mean vs Median) |
+| 6 | Location Analysis | Grouped Bar + Pie |
+| 7 | Correlation Analysis | Heatmap + Horizontal Bar |
+| 8 | Employment & Gender | Grouped Bar (2-panel) |
+| 9 | Marital Status & Housing | Grouped Bar (2-panel) |
+| 10 | Age & Work Experience | Scatter Plot (color-coded) |
+| 11 | Income Percentiles | Area Chart (P5→P95) |
+| 12 | Category Distributions | Doughnut Charts |
+
+**Part II — Data Preprocessing & Modeling**
+
+| # | Section | Content |
+|---|---------|------------|
+| 13 | Data Preprocessing | Log Transform, Label Encoding, Feature Engineering |
+| 14 | Train-Test Split | 80/20 split (8,000 / 2,000) |
+| 15 | Feature Scaling | StandardScaler (mean=0, std=1) |
+| 16 | Model Training | 5 models (Linear, Ridge, Lasso, RF, GB) |
+| 17 | Model Evaluation | R²/MAE/RMSE comparison, Feature Importance, Learning Curve |
+| 18 | Summary & Recommendations | Key findings + improvement suggestions |
 
 ---
 
@@ -260,6 +291,14 @@ python generate_chart_data.py
 ```bash
 jupyter notebook notebooks/EDA.ipynb
 ```
+
+### Generate Word Report
+
+```bash
+python generate_report.py
+```
+
+This generates `Bao_cao_Phan_tich_Thu_nhap_Ho_Gia_dinh.docx` — a comprehensive Word report with 15 embedded charts, consistent with the EDA notebook visualizations.
 
 ### Run Original Analysis Script
 
