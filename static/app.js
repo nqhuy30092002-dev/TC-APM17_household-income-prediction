@@ -376,42 +376,143 @@ function renderModelComparison() {
 // ============================================================
 // Model Section — dynamic population
 // ============================================================
+const MODEL_TYPES = {
+    'Random Forest': 'Ensemble / Tree-based',
+    'Gradient Boosting': 'Ensemble / Boosting',
+    'Ridge Regression': 'Linear / Regularized',
+    'Lasso Regression': 'Linear / Regularized',
+    'Linear Regression': 'Linear / OLS',
+};
+
+const R2_GRADIENTS = [
+    'linear-gradient(135deg, #10b981, #34d399)',    // best — green
+    'linear-gradient(135deg, #06b6d4, #3b82f6)',    // 2nd — cyan
+    'linear-gradient(135deg, #6366f1, #8b5cf6)',    // 3rd — indigo
+    'linear-gradient(135deg, #f59e0b, #ef4444)',    // 4th — amber
+    'linear-gradient(135deg, #64748b, #94a3b8)',    // 5th — slate
+];
+
 function populateModelSection(m) {
     if (!m) return;
     const allResults = m.all_model_results || {};
     const bestName   = m.best_model_name || '';
     const splitInfo  = m.split_info || {};
 
-    // Update best model card
+    // Update RF winner banner
     setText('bestModelName', bestName);
-    setText('bestValR2',   (m.metrics?.Val_R2  ?? '--').toString());
-    setText('bestTestR2',  (m.metrics?.Test_R2 ?? '--').toString());
-    setText('bestCvR2',    (m.metrics?.CV_R2_Mean ?? '--').toString());
+    if (m.metrics) {
+        const updateRing = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val != null ? val.toFixed(4) : '--';
+        };
+        updateRing('bestValR2', m.metrics.Val_R2);
+        updateRing('bestTestR2', m.metrics.Test_R2);
+        updateRing('bestCvR2', m.metrics.CV_R2_Mean);
+    }
     setText('bestValMAE',  m.metrics?.Val_MAE  ? '$' + fmtNum(m.metrics.Val_MAE)  : '--');
     setText('bestTestMAE', m.metrics?.Test_MAE ? '$' + fmtNum(m.metrics.Test_MAE) : '--');
+
+    // Update SVG rings dynamically based on actual R² values
+    if (m.metrics) {
+        const updateSvgRing = (spanId, r2val, color) => {
+            const span = document.getElementById(spanId);
+            if (!span) return;
+            const ring = span.closest('.rf-win-metric-ring');
+            if (!ring) return;
+            const circles = ring.querySelectorAll('circle');
+            if (circles.length < 2) return;
+            const circumference = 2 * Math.PI * 34; // r=34
+            const offset = circumference * (1 - Math.max(0, r2val));
+            circles[1].setAttribute('stroke-dashoffset', offset.toFixed(1));
+            circles[1].setAttribute('stroke', color);
+        };
+        updateSvgRing('bestValR2',  m.metrics.Val_R2,      '#10b981');
+        updateSvgRing('bestTestR2', m.metrics.Test_R2,     '#10b981');
+        updateSvgRing('bestCvR2',   m.metrics.CV_R2_Mean,  '#6366f1');
+    }
 
     // Split info
     setText('splitTrain', (splitInfo.train_size || '--').toLocaleString() + ' (' + (splitInfo.train_pct || 70) + '%)');
     setText('splitVal',   (splitInfo.val_size   || '--').toLocaleString() + ' (' + (splitInfo.val_pct   || 15) + '%)');
     setText('splitTest',  (splitInfo.test_size  || '--').toLocaleString() + ' (' + (splitInfo.test_pct  || 15) + '%)');
 
+    // Sort models by Val R²
+    const sorted = Object.entries(allResults).sort(([,a],[,b]) => (b.Val_R2||0) - (a.Val_R2||0));
+
+    // 5 Model Cards Grid
+    const cardsGrid = document.getElementById('modelCardsGrid');
+    if (cardsGrid) {
+        const maxR2 = sorted[0][1].Val_R2 || 1;
+        cardsGrid.innerHTML = sorted.map(([name, r], idx) => {
+            const isBest = name === bestName;
+            const valR2 = r.Val_R2 ?? 0;
+            const barPct = Math.max(0, (valR2 / maxR2) * 100).toFixed(1);
+            const r2Class = valR2 >= 0.8 ? 'good' : valR2 >= 0.5 ? 'ok' : 'bad';
+            const gradient = R2_GRADIENTS[idx] || R2_GRADIENTS[4];
+            const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][idx] || (idx+1);
+            return `<div class="model-card-new ${isBest ? 'is-best' : ''}">
+                <div class="model-card-rank">${idx + 1}</div>
+                <div class="model-card-header">
+                    <div class="model-card-name">${name}</div>
+                    <div class="model-card-type">${MODEL_TYPES[name] || 'ML Model'}</div>
+                </div>
+                <div class="model-card-r2-bar">
+                    <div class="model-card-r2-label">
+                        <span>Val R²</span>
+                        <span class="model-card-r2-value model-card-metric-value ${r2Class}">${valR2.toFixed(4)}</span>
+                    </div>
+                    <div class="model-card-r2-track">
+                        <div class="model-card-r2-fill" style="width:${barPct}%;background:${gradient}"></div>
+                    </div>
+                </div>
+                <div class="model-card-metrics">
+                    <div class="model-card-metric-row">
+                        <span class="model-card-metric-label">Test R²</span>
+                        <span class="model-card-metric-value ${r2Class}">${r.Test_R2?.toFixed(4) ?? '--'}</span>
+                    </div>
+                    <div class="model-card-metric-row">
+                        <span class="model-card-metric-label">CV R²</span>
+                        <span class="model-card-metric-value">${r.CV_R2_Mean?.toFixed(4) ?? '--'} ±${r.CV_R2_Std?.toFixed(4) ?? '--'}</span>
+                    </div>
+                    <div class="model-card-metric-row">
+                        <span class="model-card-metric-label">Val MAE</span>
+                        <span class="model-card-metric-value">$${fmtNum(r.Val_MAE)}</span>
+                    </div>
+                    <div class="model-card-metric-row">
+                        <span class="model-card-metric-label">Val MAPE</span>
+                        <span class="model-card-metric-value">${r.Val_MAPE?.toFixed(1) ?? '--'}%</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        // Animate bar fills after render
+        setTimeout(() => {
+            cardsGrid.querySelectorAll('.model-card-r2-fill').forEach(el => {
+                const w = el.style.width;
+                el.style.width = '0';
+                requestAnimationFrame(() => { el.style.width = w; });
+            });
+        }, 100);
+    }
+
     // Comparison table
     const tbody = document.getElementById('modelCompTableBody');
     if (tbody) {
-        tbody.innerHTML = Object.entries(allResults)
-            .sort(([,a],[,b]) => (b.Val_R2||0) - (a.Val_R2||0))
-            .map(([name, r]) => {
-                const isBest = name === bestName;
-                return `<tr class="${isBest ? 'best-row' : ''}">
-                    <td>${isBest ? '★ ' : ''}${name}</td>
-                    <td>${r.Val_R2?.toFixed(4) ?? '--'}</td>
-                    <td>${r.Test_R2?.toFixed(4) ?? '--'}</td>
-                    <td>${r.CV_R2_Mean?.toFixed(4) ?? '--'} ± ${r.CV_R2_Std?.toFixed(4) ?? '--'}</td>
-                    <td>$${fmtNum(r.Val_MAE)}</td>
-                    <td>$${fmtNum(r.Val_RMSE)}</td>
-                    <td>${r.Val_MAPE?.toFixed(1) ?? '--'}%</td>
-                </tr>`;
-            }).join('');
+        tbody.innerHTML = sorted.map(([name, r], idx) => {
+            const isBest = name === bestName;
+            const rankLabels = ['🥇 #1', '🥈 #2', '🥉 #3', '#4', '#5'];
+            const rankLabel  = rankLabels[idx] || `#${idx+1}`;
+            return `<tr class="${isBest ? 'best-row' : ''}">
+                <td style="text-align:left;font-weight:${isBest?'700':'400'}">${isBest ? '★ ' : ''}${name}</td>
+                <td>${r.Val_R2?.toFixed(4) ?? '--'}</td>
+                <td>${r.Test_R2?.toFixed(4) ?? '--'}</td>
+                <td>${r.CV_R2_Mean?.toFixed(4) ?? '--'} ± ${r.CV_R2_Std?.toFixed(4) ?? '--'}</td>
+                <td>$${fmtNum(r.Val_MAE)}</td>
+                <td>$${fmtNum(r.Val_RMSE)}</td>
+                <td>${r.Val_MAPE?.toFixed(1) ?? '--'}%</td>
+                <td>${rankLabel}</td>
+            </tr>`;
+        }).join('');
     }
 }
 

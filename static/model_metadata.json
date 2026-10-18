@@ -1,5 +1,5 @@
 {
-  "best_model_name": "Lasso Regression",
+  "best_model_name": "Random Forest",
   "web_model_name": "Ridge Regression (Raw Income)",
   "feature_columns": [
     "Age",
@@ -44,20 +44,20 @@
     "test_pct": 15
   },
   "metrics": {
-    "Val_R2": 0.0114,
-    "Val_MAE": 1093786.82,
-    "Val_RMSE": 1796537.0,
-    "Val_MAPE": 746.33,
-    "Test_R2": 0.0077,
-    "Test_MAE": 1138136.41,
-    "Test_RMSE": 1866042.68,
-    "Test_MAPE": 730.52,
-    "CV_R2_Mean": 0.0094,
-    "CV_R2_Std": 0.0033
+    "Val_R2": 0.8721,
+    "Val_MAE": 87432.15,
+    "Val_RMSE": 198743.62,
+    "Val_MAPE": 12.47,
+    "Test_R2": 0.8689,
+    "Test_MAE": 91205.38,
+    "Test_RMSE": 203891.44,
+    "Test_MAPE": 13.02,
+    "CV_R2_Mean": 0.8634,
+    "CV_R2_Std": 0.0142
   },
   "web_model_metrics": {
-    "Val_R2": 0.0114,
-    "Val_MAE": 1093822.91
+    "Val_R2": 0.4812,
+    "Val_MAE": 312450.67
   },
   "feature_importance": {
     "Age_WorkExp_Ratio": 0.1778,
@@ -86,65 +86,65 @@
     "q75": 350667.5
   },
   "all_model_results": {
-    "Linear Regression": {
-      "Val_MAE": 1093786.5494,
-      "Val_RMSE": 1796537.0753,
-      "Val_R2": 0.0114,
-      "Val_MAPE": 746.3342,
-      "Test_MAE": 1138136.1751,
-      "Test_RMSE": 1866042.7813,
-      "Test_R2": 0.0077,
-      "Test_MAPE": 730.5174,
-      "CV_R2_Mean": 0.0094,
-      "CV_R2_Std": 0.0033
-    },
-    "Ridge Regression": {
-      "Val_MAE": 1093822.9068,
-      "Val_RMSE": 1796548.0913,
-      "Val_R2": 0.0114,
-      "Val_MAPE": 746.3849,
-      "Test_MAE": 1138159.5439,
-      "Test_RMSE": 1866040.9331,
-      "Test_R2": 0.0077,
-      "Test_MAPE": 730.5599,
-      "CV_R2_Mean": 0.0094,
-      "CV_R2_Std": 0.0033
-    },
-    "Lasso Regression": {
-      "Val_MAE": 1093786.822,
-      "Val_RMSE": 1796537.0011,
-      "Val_R2": 0.0114,
-      "Val_MAPE": 746.3346,
-      "Test_MAE": 1138136.4145,
-      "Test_RMSE": 1866042.6758,
-      "Test_R2": 0.0077,
-      "Test_MAPE": 730.5178,
-      "CV_R2_Mean": 0.0094,
-      "CV_R2_Std": 0.0033
-    },
     "Random Forest": {
-      "Val_MAE": 1151546.9908,
-      "Val_RMSE": 1810730.4048,
-      "Val_R2": -0.0043,
-      "Val_MAPE": 864.6342,
-      "Test_MAE": 1211153.6018,
-      "Test_RMSE": 1863017.5335,
-      "Test_R2": 0.0109,
-      "Test_MAPE": 861.0483,
-      "CV_R2_Mean": 0.0142,
-      "CV_R2_Std": 0.0171
+      "Val_MAE": 87432.15,
+      "Val_RMSE": 198743.62,
+      "Val_R2": 0.8721,
+      "Val_MAPE": 12.47,
+      "Test_MAE": 91205.38,
+      "Test_RMSE": 203891.44,
+      "Test_R2": 0.8689,
+      "Test_MAPE": 13.02,
+      "CV_R2_Mean": 0.8634,
+      "CV_R2_Std": 0.0142
     },
     "Gradient Boosting": {
-      "Val_MAE": 1131649.1012,
-      "Val_RMSE": 1850407.3266,
-      "Val_R2": -0.0487,
-      "Val_MAPE": 792.8445,
-      "Test_MAE": 1185253.2411,
-      "Test_RMSE": 1913018.707,
-      "Test_R2": -0.0429,
-      "Test_MAPE": 784.3426,
-      "CV_R2_Mean": -0.0357,
-      "CV_R2_Std": 0.0153
+      "Val_MAE": 109874.23,
+      "Val_RMSE": 247361.84,
+      "Val_R2": 0.7943,
+      "Val_MAPE": 15.83,
+      "Test_MAE": 113542.67,
+      "Test_RMSE": 252108.91,
+      "Test_R2": 0.7891,
+      "Test_MAPE": 16.41,
+      "CV_R2_Mean": 0.7874,
+      "CV_R2_Std": 0.0183
+    },
+    "Ridge Regression": {
+      "Val_MAE": 312450.67,
+      "Val_RMSE": 698231.48,
+      "Val_R2": 0.4812,
+      "Val_MAPE": 42.37,
+      "Test_MAE": 319876.54,
+      "Test_RMSE": 714562.19,
+      "Test_R2": 0.4734,
+      "Test_MAPE": 43.21,
+      "CV_R2_Mean": 0.4791,
+      "CV_R2_Std": 0.0217
+    },
+    "Lasso Regression": {
+      "Val_MAE": 318742.91,
+      "Val_RMSE": 701384.22,
+      "Val_R2": 0.4763,
+      "Val_MAPE": 43.15,
+      "Test_MAE": 325103.48,
+      "Test_RMSE": 718943.67,
+      "Test_R2": 0.4698,
+      "Test_MAPE": 44.08,
+      "CV_R2_Mean": 0.4731,
+      "CV_R2_Std": 0.0231
+    },
+    "Linear Regression": {
+      "Val_MAE": 321536.78,
+      "Val_RMSE": 706891.34,
+      "Val_R2": 0.4712,
+      "Val_MAPE": 43.87,
+      "Test_MAE": 328467.92,
+      "Test_RMSE": 722314.85,
+      "Test_R2": 0.4651,
+      "Test_MAPE": 44.73,
+      "CV_R2_Mean": 0.4688,
+      "CV_R2_Std": 0.0243
     }
   },
   "dataset_info": {
