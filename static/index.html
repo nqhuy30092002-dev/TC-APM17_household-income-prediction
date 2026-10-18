@@ -365,17 +365,6 @@
                     </div>
                 </div>
 
-                <!-- Log Income Distribution -->
-                <div class="chart-card chart-card-large">
-                    <div class="chart-card-header">
-                        <h3>📉 Phân Phối Log(Income) — Sau biến đổi</h3>
-                        <span class="insight-tag">Log Transform</span>
-                    </div>
-                    <div class="chart-card-body">
-                        <canvas id="chartLogIncomeHist"></canvas>
-                    </div>
-                </div>
-
                 <!-- Income by Education -->
                 <div class="chart-card">
                     <div class="chart-card-header">
@@ -473,63 +462,99 @@
                     <div class="chart-card-body chart-body-square">
                         <canvas id="chartEduDist"></canvas>
                     </div>
-                </div>
-
-                <!-- Occupation Distribution Doughnut -->
-                <div class="chart-card">
-                    <div class="chart-card-header">
-                        <h3>💼 Phân Bố Ngành Nghề</h3>
-                        <span class="insight-tag">Doughnut</span>
-                    </div>
-                    <div class="chart-card-body chart-body-square">
-                        <canvas id="chartOccDist"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Model Section — Random Forest Only -->
+                  <!-- Model Section — All 5 Models Comparison -->
     <section class="model-section" id="model">
         <div class="section-container">
             <div class="section-header">
-                <span class="section-badge">🧠 Random Forest</span>
+                <span class="section-badge">🧠 So Sánh Mô Hình</span>
                 <h2 class="section-title">Mô Hình Dự Đoán</h2>
-                <p class="section-subtitle">Random Forest Regressor — mô hình được chọn để dự đoán thu nhập hộ gia đình</p>
+                <p class="section-subtitle">So sánh 5 mô hình hồi quy — chọn mô hình tốt nhất theo Validation R²</p>
             </div>
 
-            <!-- Single RF Model Card -->
-            <div class="rf-model-showcase">
+            <!-- Split Info -->
+            <div class="stats-row" style="margin-bottom:2rem">
+                <div class="stat-card">
+                    <div class="stat-card-icon">📅</div>
+                    <div class="stat-card-value" id="splitTrain">7,000 (70%)</div>
+                    <div class="stat-card-label">Tập huấn luyện</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon">📊</div>
+                    <div class="stat-card-value" id="splitVal">1,500 (15%)</div>
+                    <div class="stat-card-label">Tập kiểm định</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon">🧯</div>
+                    <div class="stat-card-value" id="splitTest">1,500 (15%)</div>
+                    <div class="stat-card-label">Tập kiểm tra</div>
+                </div>
+            </div>
+
+            <!-- Best Model Card -->
+            <div class="rf-model-showcase" style="margin-bottom:2rem">
                 <div class="rf-model-main">
-                    <div class="rf-model-icon">🌲</div>
-                    <h3>Random Forest Regressor</h3>
-                    <p class="rf-model-desc">Ensemble learning method sử dụng 300 decision trees với max_depth=20, được huấn luyện trên log-transformed income để xử lý phân phối lệch phải.</p>
+                    <div class="rf-model-icon">🏆</div>
+                    <h3 id="bestModelName">--</h3>
+                    <p class="rf-model-desc">Mô hình được chọn dựa trên Validation R² cao nhất. Huấn luyện trực tiếp trên thu nhập gốc (không log transform).</p>
                 </div>
                 <div class="rf-metrics-grid" id="rfMetricsGrid">
                     <div class="rf-metric">
-                        <div class="rf-metric-label">R² (log scale)</div>
-                        <div class="rf-metric-value good" id="rfR2Log">0.1472</div>
+                        <div class="rf-metric-label">Val R²</div>
+                        <div class="rf-metric-value good" id="bestValR2">--</div>
+                    </div>
+                    <div class="rf-metric">
+                        <div class="rf-metric-label">Test R²</div>
+                        <div class="rf-metric-value good" id="bestTestR2">--</div>
                     </div>
                     <div class="rf-metric">
                         <div class="rf-metric-label">CV R² (5-fold)</div>
-                        <div class="rf-metric-value good" id="rfCvR2">0.1527</div>
+                        <div class="rf-metric-value" id="bestCvR2">--</div>
                     </div>
                     <div class="rf-metric">
-                        <div class="rf-metric-label">MAE</div>
-                        <div class="rf-metric-value" id="rfMAE">$763,300</div>
+                        <div class="rf-metric-label">Val MAE</div>
+                        <div class="rf-metric-value" id="bestValMAE">--</div>
                     </div>
                     <div class="rf-metric">
-                        <div class="rf-metric-label">RMSE</div>
-                        <div class="rf-metric-value" id="rfRMSE">$1,846,157</div>
+                        <div class="rf-metric-label">Test MAE</div>
+                        <div class="rf-metric-value" id="bestTestMAE">--</div>
                     </div>
-                    <div class="rf-metric">
-                        <div class="rf-metric-label">Số cây (Trees)</div>
-                        <div class="rf-metric-value">300</div>
-                    </div>
-                    <div class="rf-metric">
-                        <div class="rf-metric-label">Max Depth</div>
-                        <div class="rf-metric-value">20</div>
-                    </div>
+                </div>
+            </div>
+
+            <!-- Model Comparison Chart -->
+            <div class="chart-card chart-card-large" style="margin-bottom:2rem">
+                <div class="chart-card-header">
+                    <h3>📊 So Sánh R² — 5 Mô Hình</h3>
+                    <span class="insight-tag">Val / Test / CV</span>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartModelComparison"></canvas>
+                </div>
+            </div>
+
+            <!-- Model Comparison Table -->
+            <div class="chart-card" style="margin-bottom:2rem; overflow-x:auto">
+                <div class="chart-card-header">
+                    <h3>📋 Bảng So Sánh Chi Tiết</h3>
+                    <span class="insight-tag">★ = Best model</span>
+                </div>
+                <div style="padding:1.2rem; overflow-x:auto">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                        <thead>
+                            <tr style="background:rgba(99,102,241,0.15);text-align:center">
+                                <th style="padding:0.6rem 0.8rem;text-align:left">Mô Hình</th>
+                                <th style="padding:0.6rem">Val R²</th>
+                                <th style="padding:0.6rem">Test R²</th>
+                                <th style="padding:0.6rem">CV R² (± Std)</th>
+                                <th style="padding:0.6rem">Val MAE</th>
+                                <th style="padding:0.6rem">Val RMSE</th>
+                                <th style="padding:0.6rem">Val MAPE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modelCompTableBody" style="text-align:center">
+                            <tr><td colspan="7" style="padding:1rem;opacity:0.5">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -542,7 +567,7 @@
                         <div class="method-step">
                             <div class="step-number">01</div>
                             <div class="step-content">
-                                <h4>Thu Thập & Khám Phá</h4>
+                                <h4>Thu Thập &amp; Khám Phá</h4>
                                 <p>10,000 bản ghi, 13 đặc trưng. Kiểm tra missing values, outliers, phân phối.</p>
                             </div>
                         </div>
@@ -550,21 +575,28 @@
                             <div class="step-number">02</div>
                             <div class="step-content">
                                 <h4>Tiền Xử Lý</h4>
-                                <p>Log-transform target (giảm skewness 2.98 → 1.35), Label Encoding, Feature Engineering.</p>
+                                <p>Label Encoding cho 9 biến phân loại. Feature Engineering tạo 2 đặc trưng mới. Không dùng log transform — dự đoán thu nhập gốc.</p>
                             </div>
                         </div>
                         <div class="method-step">
                             <div class="step-number">03</div>
                             <div class="step-content">
-                                <h4>Random Forest Training</h4>
-                                <p>300 trees, max_depth=20, 80/20 split, 5-fold cross-validation.</p>
+                                <h4>Chia Dữ Liệu 70/15/15</h4>
+                                <p>Train (70%) / Validation (15%) / Test (15%). Chọn mô hình dựa trên Validation R², đánh giá cuối trên Test set.</p>
                             </div>
                         </div>
                         <div class="method-step">
                             <div class="step-number">04</div>
                             <div class="step-content">
+                                <h4>So Sánh 5 Mô Hình &amp; Chọn Tốt Nhất</h4>
+                                <p>Linear, Ridge, Lasso, Random Forest, Gradient Boosting — 5-fold CV. Lựa chọn theo Val R² cao nhất.</p>
+                            </div>
+                        </div>
+                        <div class="method-step">
+                            <div class="step-number">05</div>
+                            <div class="step-content">
                                 <h4>Triển Khai Web App</h4>
-                                <p>Export coefficients, JavaScript prediction engine chạy trực tiếp trên trình duyệt.</p>
+                                <p>Export hệ số Ridge, JavaScript prediction engine chạy trực tiếp trên trình duyệt (không cần server).</p>
                             </div>
                         </div>
                     </div>
@@ -581,7 +613,7 @@
                 <span class="logo-text">IncomePredict<span class="logo-ai">AI</span></span>
             </div>
             <p class="footer-text">
-                Household Income Prediction | Powered by Random Forest
+                Household Income Prediction | 70/15/15 Split | No Log Transform | Best Model by Validation R²
             </p>
             <p class="footer-credit">
                 Data Source: <a href="https://www.kaggle.com/datasets/stealthtechnologies/regression-dataset-for-household-income-analysis" target="_blank" rel="noopener">Kaggle - Regression Dataset for Household Income Analysis</a>

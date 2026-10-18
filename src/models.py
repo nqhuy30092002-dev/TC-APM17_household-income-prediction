@@ -2,7 +2,7 @@
 models.py - Model definitions for household income prediction.
 
 Provides a registry of scikit-learn regression models with pre-configured
-hyperparameters for predicting log-transformed household income.
+hyperparameters for predicting raw (untransformed) household income.
 """
 
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
@@ -19,17 +19,17 @@ def get_model_registry() -> dict:
         {model_name: sklearn estimator instance}
     """
     return {
-        'Linear (Log)': LinearRegression(),
-        'Ridge (Log)': Ridge(alpha=10.0),
-        'Lasso (Log)': Lasso(alpha=0.01),
-        'Random Forest (Log)': RandomForestRegressor(
+        'Linear Regression': LinearRegression(),
+        'Ridge Regression': Ridge(alpha=10.0),
+        'Lasso Regression': Lasso(alpha=1.0),
+        'Random Forest': RandomForestRegressor(
             n_estimators=300,
             max_depth=20,
             min_samples_split=5,
             random_state=42,
             n_jobs=-1,
         ),
-        'Gradient Boosting (Log)': GradientBoostingRegressor(
+        'Gradient Boosting': GradientBoostingRegressor(
             n_estimators=300,
             max_depth=6,
             learning_rate=0.05,

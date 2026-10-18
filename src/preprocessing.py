@@ -2,36 +2,18 @@
 preprocessing.py - Data preprocessing pipeline for household income prediction.
 
 Handles:
-- Log transformation of the target variable
 - Label encoding of categorical features
 - Feature engineering
 - Feature scaling
+- Train/Validation/Test split (70/15/15)
+
+Note: Log transform has been removed. Models are trained directly on raw income.
 """
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-
-
-def log_transform_target(df: pd.DataFrame, target_col: str = 'Income') -> pd.DataFrame:
-    """
-    Apply log1p transform to the target variable to reduce skewness.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input DataFrame.
-    target_col : str
-        Name of the target column.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with an additional '{target_col}_log' column.
-    """
-    df = df.copy()
-    df[f'{target_col}_log'] = np.log1p(df[target_col])
-    return df
+from sklearn.model_selection import train_test_split
 
 
 def encode_categorical(
@@ -125,6 +107,7 @@ def build_feature_columns(num_cols: list[str], cat_cols: list[str]) -> list[str]
 
 def scale_features(
     X_train: np.ndarray,
+    X_val: np.ndarray = None,
     X_test: np.ndarray = None,
     scaler: StandardScaler = None
 ) -> tuple:
@@ -135,6 +118,8 @@ def scale_features(
     ----------
     X_train : np.ndarray
         Training features.
+    X_val : np.ndarray, optional
+        Validation features to transform.
     X_test : np.ndarray, optional
         Test features to transform.
     scaler : StandardScaler, optional
@@ -143,7 +128,7 @@ def scale_features(
     Returns
     -------
     tuple
-        (X_train_scaled, X_test_scaled, scaler)
+        (X_train_scaled, X_val_scaled, X_test_scaled, scaler)
     """
     if scaler is None:
         scaler = StandardScaler()
@@ -151,14 +136,49 @@ def scale_features(
     else:
         X_train_scaled = scaler.transform(X_train)
 
+    X_val_scaled = scaler.transform(X_val) if X_val is not None else None
     X_test_scaled = scaler.transform(X_test) if X_test is not None else None
 
-    return X_train_scaled, X_test_scaled, scaler
+    return X_train_scaled, X_val_scaled, X_test_scaled, scaler
+
+
+def split_data(X: pd.DataFrame, y: pd.Series, train_size=0.70, val_size=0.15, random_state=42):
+    """
+    Split data into train / validation / test sets (70/15/15 by default).
+
+    Parameters
+    ----------
+    X : pd.DataFrame
+        Feature matrix.
+    y : pd.Series
+        Target vector.
+    train_size : float
+        Fraction for training (default 0.70).
+    val_size : float
+        Fraction for validation (default 0.15).
+    random_state : int
+        Random seed.
+
+    Returns
+    -------
+    tuple
+        (X_train, X_val, X_test, y_train, y_val, y_test)
+    """
+    remaining = 1.0 - train_size
+    val_of_remaining = val_size / remaining
+
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        X, y, test_size=remaining, random_state=random_state
+    )
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp, y_temp, test_size=(1.0 - val_of_remaining), random_state=random_state
+    )
+    return X_train, X_val, X_test, y_train, y_val, y_test
 
 
 def preprocess_pipeline(df: pd.DataFrame) -> dict:
     """
-    Run the full preprocessing pipeline.
+    Run the full preprocessing pipeline (without log transform).
 
     Parameters
     ----------
@@ -173,16 +193,13 @@ def preprocess_pipeline(df: pd.DataFrame) -> dict:
     cat_cols = df.select_dtypes(include=['object']).columns.tolist()
     num_cols = df.select_dtypes(include=['number']).columns.tolist()
 
-    # 1. Log-transform target
-    df_processed = log_transform_target(df)
+    # 1. Encode categoricals
+    df_processed, label_encoders, encoding_maps = encode_categorical(df, cat_cols)
 
-    # 2. Encode categoricals
-    df_processed, label_encoders, encoding_maps = encode_categorical(df_processed, cat_cols)
-
-    # 3. Feature engineering
+    # 2. Feature engineering
     df_processed = engineer_features(df_processed)
 
-    # 4. Build feature list
+    # 3. Build feature list
     feature_cols = build_feature_columns(num_cols, cat_cols)
 
     return {

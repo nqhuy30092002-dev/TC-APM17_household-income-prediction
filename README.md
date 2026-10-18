@@ -1,6 +1,6 @@
 # 📊 Household Income Prediction
 
-> Web application for predicting annual household income using **Random Forest** Machine Learning.
+> Web application for predicting annual household income using **Machine Learning**. Trained directly on raw income values (no log transform) with a 70/15/15 Train/Validation/Test split.
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
@@ -16,9 +16,9 @@ Dự án phân tích các yếu tố nhân khẩu học và kinh tế xã hội 
 **Dataset:** [Kaggle - Regression Dataset for Household Income Analysis](https://www.kaggle.com/datasets/stealthtechnologies/regression-dataset-for-household-income-analysis)
 
 ### Key Features
-- 🔬 **Exploratory Data Analysis** — Notebook EDA + 12 interactive charts trên web
-- 🌲 **Random Forest Model** — Best model được chọn (CV R² = 0.1527)
-- 📊 **12 Chart.js Charts** — Histogram, grouped bar, doughnut, area, horizontal bar
+- 🔬 **Exploratory Data Analysis** — Notebook EDA + 11 interactive charts trên web
+- 📈 **5 ML Models** — Linear, Ridge, Lasso, Random Forest, Gradient Boosting (best: Lasso, CV R² = 0.0094)
+- 📊 **11 Chart.js Charts** — Histogram, grouped bar, doughnut, area, horizontal bar
 - 🌐 **Interactive Web App** — Real-time prediction engine chạy client-side
 - 📱 **Responsive Design** — Desktop & mobile
 - ✨ **Premium Dark UI** — Glassmorphism, animations
@@ -39,7 +39,7 @@ Household Income Prediction/
 ├── 📂 src/                         # Source code modules
 │   ├── __init__.py                 # Package init
 │   ├── data_loader.py              # Data loading & validation
-│   ├── preprocessing.py            # Log-transform, encoding, scaling
+│   ├── preprocessing.py            # Label encoding, feature engineering, scaling, 70/15/15 split
 │   ├── models.py                   # Model definitions & registry
 │   ├── evaluation.py               # Metrics & feature importance
 │   └── train_and_evaluate_all.py   # End-to-end training pipeline
@@ -126,7 +126,7 @@ python main.py --no-browser       # Don't auto-open browser
 ### Income Distribution
 
 - **Mean:** $816,838 | **Median:** $72,943
-- **Skewness:** 2.98 (heavily right-skewed) → handled with **log-transform** (→ 1.35)
+- **Skewness:** 2.98 (heavily right-skewed) — models trained directly on **raw income** (no log transform)
 - **~19%** outliers detected via IQR method
 
 ### EDA Notebook
@@ -156,11 +156,11 @@ The notebook contains **18 sections** split into two parts:
 
 | # | Section | Content |
 |---|---------|------------|
-| 13 | Data Preprocessing | Log Transform, Label Encoding, Feature Engineering |
-| 14 | Train-Test Split | 80/20 split (8,000 / 2,000) |
+| 13 | Data Preprocessing | Label Encoding, Feature Engineering (no log transform) |
+| 14 | Train/Validation/Test Split | 70/15/15 split (7,000 / 1,500 / 1,500) |
 | 15 | Feature Scaling | StandardScaler (mean=0, std=1) |
 | 16 | Model Training | 5 models (Linear, Ridge, Lasso, RF, GB) |
-| 17 | Model Evaluation | R²/MAE/RMSE comparison, Feature Importance, Learning Curve |
+| 17 | Model Evaluation | R²/MAE/RMSE comparison on Val & Test sets, Feature Importance |
 | 18 | Summary & Recommendations | Key findings + improvement suggestions |
 
 ---
@@ -175,34 +175,48 @@ The notebook contains **18 sections** split into two parts:
 | n_estimators | 300 |
 | max_depth | 20 |
 | min_samples_split | 5 |
-| Target Transform | log1p(Income) |
-| Train/Test Split | 80/20 |
+| Target Transform | None (raw income) |
+| Train/Val/Test Split | 70/15/15 |
 | Cross-Validation | 5-fold |
 
 ### Performance Metrics
 
-| Metric | Value |
-|--------|-------|
-| **R² (log scale)** | **0.1472** |
-| **CV R² (5-fold)** | **0.1527 ± 0.011** |
-| MAE | $763,300 |
-| RMSE | $1,846,157 |
-| MAPE | 139.69% |
+| Metric | Val Set | Test Set |
+|--------|---------|----------|
+| **R²** | **0.0114** | **0.0077** |
+| **CV R² (5-fold)** | **0.0094 ± 0.0033** | — |
+| MAE | $1,093,787 | $1,138,136 |
+| RMSE | $1,796,537 | $1,866,043 |
+| MAPE | 746.3% | 730.5% |
 
-> **Note:** The modest R² scores are expected for this synthetic dataset which contains significant random noise. The Random Forest model best captures the non-linear relationships in the data.
+> **Note:** Metrics are for the best model (Lasso Regression). The very low R² scores are expected for this heavily right-skewed synthetic dataset ($816K mean, $73K median, skewness=2.98) when models are trained on **raw income without log transform**. The high MAPE reflects extreme outliers in the income distribution (max ~$10M).
+>
+> Models are trained and evaluated on **raw income values** (no log transform). Model selection is based on **Validation R²**.
+
+### All Model Results (Val Set)
+
+| Model | Val R² | Val MAE | Test R² | CV R² |
+|-------|--------|---------|---------|-------|
+| **Lasso Regression** ★ | **0.0114** | $1,093,787 | 0.0077 | 0.0094 |
+| Linear Regression | 0.0114 | $1,093,787 | 0.0077 | 0.0094 |
+| Ridge Regression | 0.0114 | $1,093,823 | 0.0077 | 0.0094 |
+| Random Forest | -0.0043 | $1,151,547 | 0.0109 | 0.0142 |
+| Gradient Boosting | -0.0487 | $1,131,649 | -0.0429 | -0.0358 |
 
 ### Top Feature Importance
 
 | Rank | Feature | Importance |
 |------|---------|-----------|
-| 1 | Age / Work Experience Ratio | 17.08% |
-| 2 | Work Experience | 13.40% |
-| 3 | Age | 12.26% |
-| 4 | Dependents / Household Size | 8.88% |
-| 5 | Occupation | 7.81% |
-| 6 | Household Size | 5.58% |
-| 7 | Employment Status | 5.39% |
-| 8 | Education Level | 4.87% |
+| 1 | Age / Work Experience Ratio | 17.78% |
+| 2 | Location | 17.03% |
+| 3 | Homeownership Status | 16.16% |
+| 4 | Work Experience | 15.14% |
+| 5 | Type of Housing | 6.86% |
+| 6 | Dependents / Household Size | 6.82% |
+| 7 | Household Size | 6.03% |
+| 8 | Age | 4.26% |
+
+> Feature importance based on Ridge normalized |coefficients| (best model Lasso has no non-zero coefs on this data).
 
 ---
 
@@ -213,17 +227,16 @@ The web app includes **12 interactive Chart.js charts** powered by [`chart_data.
 | # | Chart | Type | Description |
 |---|-------|------|-------------|
 | 1 | Income Distribution | Histogram | Raw income frequency |
-| 2 | Log(Income) Distribution | Histogram | After log-transform |
-| 3 | Income by Education | Grouped Bar | Median + Mean per level |
-| 4 | Income by Occupation | Grouped Bar | Median + Mean per field |
-| 5 | Income by Location | Grouped Bar | Urban / Suburban / Rural |
-| 6 | Income by Employment | Grouped Bar | Full-time / Part-time / Self |
-| 7 | Income by Gender | Grouped Bar | Male / Female |
-| 8 | Income by Marital Status | Grouped Bar | Single / Married / Divorced |
-| 9 | Feature Importance | Horizontal Bar | Top 12 RF features |
-| 10 | Income Percentiles | Area/Line | P5 → P95 curve |
-| 11 | Education Distribution | Doughnut | Category proportions |
-| 12 | Occupation Distribution | Doughnut | Category proportions |
+| 2 | Income by Education | Grouped Bar | Median + Mean per level |
+| 3 | Income by Occupation | Grouped Bar | Median + Mean per field |
+| 4 | Income by Location | Grouped Bar | Urban / Suburban / Rural |
+| 5 | Income by Employment | Grouped Bar | Full-time / Part-time / Self |
+| 6 | Income by Gender | Grouped Bar | Male / Female |
+| 7 | Income by Marital Status | Grouped Bar | Single / Married / Divorced |
+| 8 | Feature Importance | Horizontal Bar | Top 12 RF features |
+| 9 | Income Percentiles | Area/Line | P5 → P95 curve |
+| 10 | Education Distribution | Doughnut | Category proportions |
+| 11 | Occupation Distribution | Doughnut | Category proportions |
 
 To regenerate chart data from the dataset:
 ```bash
@@ -254,9 +267,8 @@ python generate_chart_data.py
 2. JavaScript encodes categorical variables (Label Encoding)
 3. Engineered features computed (Age/WorkExp ratio, Dependents/HH size)
 4. Features normalized using StandardScaler parameters
-5. Ridge Regression predicts `log(income)` (web-optimized version)
-6. `expm1()` converts back to dollar amount
-7. Results displayed with factor analysis
+5. Ridge Regression predicts **raw income** directly (no log/exp conversion needed)
+6. Results displayed with factor analysis
 
 **Analytics Pipeline:**
 1. `generate_chart_data.py` reads `data/data.csv`
@@ -312,8 +324,8 @@ python analysis_and_model.py
 
 The web app includes:
 - **Hero Section** — Overview statistics and call-to-action
-- **Prediction Form** — 13-field input form with real-time Random Forest prediction
-- **Data Insights** — 12 interactive Chart.js charts with real dataset analysis
+- **Prediction Form** — 13-field input form with real-time income prediction (Ridge model)
+- **Data Insights** — 11 interactive Chart.js charts with real dataset analysis
 - **Random Forest Model** — Model metrics, hyperparameters, and methodology
 - **Methodology** — 4-step pipeline explanation
 

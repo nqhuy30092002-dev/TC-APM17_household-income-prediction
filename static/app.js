@@ -2,7 +2,8 @@
  * Household Income Predictor — Web Application
  * ==============================================
  * Client-side prediction engine + Chart.js analytics
- * Model: Random Forest (best) / Ridge Regression (web prediction)
+ * Split: 70/15/15 Train/Validation/Test — No log transform
+ * Model: Best selected by Validation R² / Ridge Regression (web prediction)
  */
 
 // ============================================================
@@ -66,11 +67,15 @@ async function loadAllData() {
 function populateHeroStats() {
     if (!modelMetadata) return;
     const m = modelMetadata;
-    setText('statAccuracy', m.metrics?.CV_R2_Mean?.toFixed(4) || '--');
+    // Show best model's Test R² in hero
+    const testR2 = m.metrics?.Test_R2 ?? m.metrics?.CV_R2_Mean;
+    setText('statAccuracy', testR2 != null ? testR2.toFixed(4) : '--');
     setText('statDatapoints', (m.dataset_info?.total_rows || 10000).toLocaleString() + '+');
     setText('cardAvgIncome', '$' + fmtNum(m.income_stats?.median));
     setText('qsMedianValue', '$' + fmtNum(m.income_stats?.median));
     setText('qsMeanValue', '$' + fmtNum(m.income_stats?.mean));
+    // Populate model section dynamically
+    populateModelSection(m);
 }
 
 function populateSummaryStats() {
@@ -107,7 +112,6 @@ function renderAllCharts() {
     if (!chartData) return;
     chartDefaults();
     renderIncomeHistogram();
-    renderLogIncomeHistogram();
     renderGroupedBarChart('chartEducation', chartData.income_by_education, '$');
     renderGroupedBarChart('chartOccupation', chartData.income_by_occupation, '$');
     renderGroupedBarChart('chartLocation', chartData.income_by_location, '$');
@@ -118,6 +122,7 @@ function renderAllCharts() {
     renderPercentiles();
     renderDoughnut('chartEduDist', chartData.dist_education_level);
     renderDoughnut('chartOccDist', chartData.dist_occupation);
+    renderModelComparison();
 }
 
 // ── Income Histogram ──
@@ -143,35 +148,6 @@ function renderIncomeHistogram() {
             },
             scales: {
                 x: { grid: { display: false }, ticks: { maxTicksLimit: 8, maxRotation: 45 } },
-                y: { grid: { color: CHART_COLORS.gridColor }, ticks: { callback: v => v.toLocaleString() } },
-            },
-        }
-    });
-}
-
-// ── Log Income Histogram ──
-function renderLogIncomeHistogram() {
-    const d = chartData.log_income_histogram;
-    new Chart(document.getElementById('chartLogIncomeHist'), {
-        type: 'bar',
-        data: {
-            labels: d.labels,
-            datasets: [{
-                label: 'Số hộ gia đình',
-                data: d.values,
-                backgroundColor: createGradientBar('chartLogIncomeHist', CHART_COLORS.secondary, '#3b82f6'),
-                borderRadius: 4,
-                borderSkipped: false,
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: ctx => `Số lượng: ${ctx.raw.toLocaleString()}` } },
-            },
-            scales: {
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
                 y: { grid: { color: CHART_COLORS.gridColor }, ticks: { callback: v => v.toLocaleString() } },
             },
         }
@@ -354,7 +330,93 @@ function renderDoughnut(canvasId, data) {
 }
 
 // ============================================================
-// Prediction Engine (unchanged logic)
+// Model Comparison Chart (dynamic — all 5 models)
+// ============================================================
+function renderModelComparison() {
+    const allResults = modelMetadata?.all_model_results;
+    if (!allResults) return;
+    const canvas = document.getElementById('chartModelComparison');
+    if (!canvas) return;
+
+    const names = Object.keys(allResults);
+    const bestName = modelMetadata?.best_model_name || '';
+    const valR2 = names.map(n => +(allResults[n].Val_R2 ?? 0).toFixed(4));
+    const testR2 = names.map(n => +(allResults[n].Test_R2 ?? 0).toFixed(4));
+    const cvR2  = names.map(n => +(allResults[n].CV_R2_Mean ?? 0).toFixed(4));
+
+    const shortNames = names.map(n => n.replace('Regression', 'Reg.').replace('Gradient ', 'GB ').replace('Random ', 'RF '));
+    const bgVal  = names.map(n => n === bestName ? CHART_COLORS.success : CHART_COLORS.primary);
+    const bgTest = names.map(n => n === bestName ? '#059669' : CHART_COLORS.secondary);
+    const bgCV   = names.map(n => n === bestName ? '#7c3aed' : CHART_COLORS.purple);
+
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: shortNames,
+            datasets: [
+                { label: 'Val R²',  data: valR2,  backgroundColor: bgVal,  borderRadius: 5 },
+                { label: 'Test R²', data: testR2, backgroundColor: bgTest, borderRadius: 5 },
+                { label: 'CV R²',   data: cvR2,   backgroundColor: bgCV,   borderRadius: 5 },
+            ],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(4)}` } },
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: CHART_COLORS.gridColor }, ticks: { callback: v => v.toFixed(3) } },
+            },
+        },
+    });
+}
+
+// ============================================================
+// Model Section — dynamic population
+// ============================================================
+function populateModelSection(m) {
+    if (!m) return;
+    const allResults = m.all_model_results || {};
+    const bestName   = m.best_model_name || '';
+    const splitInfo  = m.split_info || {};
+
+    // Update best model card
+    setText('bestModelName', bestName);
+    setText('bestValR2',   (m.metrics?.Val_R2  ?? '--').toString());
+    setText('bestTestR2',  (m.metrics?.Test_R2 ?? '--').toString());
+    setText('bestCvR2',    (m.metrics?.CV_R2_Mean ?? '--').toString());
+    setText('bestValMAE',  m.metrics?.Val_MAE  ? '$' + fmtNum(m.metrics.Val_MAE)  : '--');
+    setText('bestTestMAE', m.metrics?.Test_MAE ? '$' + fmtNum(m.metrics.Test_MAE) : '--');
+
+    // Split info
+    setText('splitTrain', (splitInfo.train_size || '--').toLocaleString() + ' (' + (splitInfo.train_pct || 70) + '%)');
+    setText('splitVal',   (splitInfo.val_size   || '--').toLocaleString() + ' (' + (splitInfo.val_pct   || 15) + '%)');
+    setText('splitTest',  (splitInfo.test_size  || '--').toLocaleString() + ' (' + (splitInfo.test_pct  || 15) + '%)');
+
+    // Comparison table
+    const tbody = document.getElementById('modelCompTableBody');
+    if (tbody) {
+        tbody.innerHTML = Object.entries(allResults)
+            .sort(([,a],[,b]) => (b.Val_R2||0) - (a.Val_R2||0))
+            .map(([name, r]) => {
+                const isBest = name === bestName;
+                return `<tr class="${isBest ? 'best-row' : ''}">
+                    <td>${isBest ? '★ ' : ''}${name}</td>
+                    <td>${r.Val_R2?.toFixed(4) ?? '--'}</td>
+                    <td>${r.Test_R2?.toFixed(4) ?? '--'}</td>
+                    <td>${r.CV_R2_Mean?.toFixed(4) ?? '--'} ± ${r.CV_R2_Std?.toFixed(4) ?? '--'}</td>
+                    <td>$${fmtNum(r.Val_MAE)}</td>
+                    <td>$${fmtNum(r.Val_RMSE)}</td>
+                    <td>${r.Val_MAPE?.toFixed(1) ?? '--'}%</td>
+                </tr>`;
+            }).join('');
+    }
+}
+
+// ============================================================
+// Prediction Engine (no log transform)
 // ============================================================
 function predict(formData) {
     if (!modelParams) return null;
@@ -377,7 +439,7 @@ function predict(formData) {
     const scaled = features.map((v, i) => (v - p.scaler_mean[i]) / p.scaler_scale[i]);
     let pred = p.intercept;
     scaled.forEach((v, i) => pred += v * p.coefficients[i]);
-    if (p.use_log_transform) pred = Math.expm1(pred);
+    // No log transform — predict raw income directly
     return { income: Math.max(pred, 0), features, scaledFeatures: scaled };
 }
 
@@ -435,7 +497,7 @@ function displayResult(result, formData) {
     content.offsetHeight;
     content.style.animation = 'fadeInUp 0.5s ease forwards';
 
-    setText('modelUsed', 'Random Forest (Ridge web)');
+    setText('modelUsed', (modelMetadata?.best_model_name || 'Best Model') + ' (Ridge web predict)');
 
     const income = Math.round(result.income);
     animateIncome(document.getElementById('predictedIncome'), income);
@@ -560,9 +622,9 @@ function createGradientBar(canvasId, c1, c2) {
 // ── Fallback ──
 function useFallbackData() {
     modelParams = {
-        type:'ridge_log', use_log_transform:true,
-        coefficients:[.01,.02,-.01,.01,.03,.05,-.02,.01,.02,.04,-.01,.005,-.01,.015,.01],
-        intercept:11.2,
+        type:'ridge_raw', use_log_transform:false,
+        coefficients:[120,80,-60,50,1800,900,200,-150,400,300,-100,80,-200,900,-400],
+        intercept:45000,
         scaler_mean:[44,2.5,25,4,1.5,2,1,.8,.6,.4,.8,.5,1.5,2.5,.5],
         scaler_scale:[15,1.7,14.5,2,1.2,1.5,.9,.8,.8,.5,.8,.5,1.1,3,.3],
         feature_columns:['Age','Number_of_Dependents','Work_Experience','Household_Size',
@@ -584,13 +646,22 @@ function useFallbackData() {
         },
     };
     modelMetadata = {
-        best_model_name:'Random Forest (Log)', web_model_name:'Random Forest (Ridge web)',
-        metrics:{R2:0.15,R2_log:0.1472,MAE:763300,RMSE:1846157,MAPE:140,CV_R2_Mean:0.1527},
+        best_model_name:'Random Forest',
+        web_model_name:'Ridge Regression (Raw Income)',
+        metrics:{Val_R2:0.15,Test_R2:0.14,Val_MAE:420000,Val_RMSE:1200000,Val_MAPE:130,Test_MAE:430000,CV_R2_Mean:0.15},
+        split_info:{train_size:7000,val_size:1500,test_size:1500,train_pct:70,val_pct:15,test_pct:15},
         income_stats:{mean:816838,median:72943,min:31044,max:9992571,std:1821089,q25:68446,q75:350668},
-        dataset_info:{total_rows:10000,features:15,train_size:8000,test_size:2000},
+        dataset_info:{total_rows:10000,features:15,train_size:7000,val_size:1500,test_size:1500},
         feature_importance:{Age_WorkExp_Ratio:.1708,Work_Experience:.134,Age:.1226,Dependents_per_HHSize:.0888,
             Occupation_encoded:.0781,Household_Size:.0558,Employment_Status_encoded:.0539,
             Education_Level_encoded:.0487,Number_of_Dependents:.0476,Type_of_Housing_encoded:.045},
+        all_model_results:{
+            'Linear Regression':{Val_R2:0.033,Test_R2:0.031,Val_MAE:720000,Val_RMSE:2100000,Val_MAPE:180,CV_R2_Mean:0.032,CV_R2_Std:0.005},
+            'Ridge Regression':{Val_R2:0.034,Test_R2:0.032,Val_MAE:710000,Val_RMSE:2080000,Val_MAPE:175,CV_R2_Mean:0.034,CV_R2_Std:0.005},
+            'Lasso Regression':{Val_R2:0.030,Test_R2:0.029,Val_MAE:730000,Val_RMSE:2120000,Val_MAPE:185,CV_R2_Mean:0.030,CV_R2_Std:0.006},
+            'Random Forest':{Val_R2:0.150,Test_R2:0.140,Val_MAE:420000,Val_RMSE:1200000,Val_MAPE:130,CV_R2_Mean:0.153,CV_R2_Std:0.011},
+            'Gradient Boosting':{Val_R2:0.047,Test_R2:0.044,Val_MAE:680000,Val_RMSE:1900000,Val_MAPE:160,CV_R2_Mean:0.048,CV_R2_Std:0.008},
+        },
     };
     isModelLoaded = true;
     populateHeroStats();

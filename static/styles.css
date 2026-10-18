@@ -1721,3 +1721,34 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ── Model Comparison Table ── */
+#modelCompTableBody tr td {
+    padding: 0.55rem 0.6rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    transition: background var(--transition-fast);
+}
+
+#modelCompTableBody tr:hover td {
+    background: rgba(99, 102, 241, 0.06);
+    color: var(--text-primary);
+}
+
+#modelCompTableBody tr.best-row td {
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+#modelCompTableBody tr.best-row td:first-child {
+    color: var(--accent-success);
+}
+
+#modelCompTableBody thead th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    border-bottom: 2px solid var(--border-color);
+}

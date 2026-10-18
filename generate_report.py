@@ -2,8 +2,8 @@
 generate_report.py - Tạo báo cáo Word phân tích dự báo thu nhập hộ gia đình
 ================================================================================
 Script này thực hiện toàn bộ quy trình phân tích dữ liệu, huấn luyện mô hình
-Random Forest Regression, và xuất file Word (.docx) báo cáo chuyên nghiệp
-kèm hình ảnh biểu đồ phân tích đa dạng.
+Regression (không log transform), chia 70/15/15 Train/Val/Test,
+và xuất file Word (.docx) báo cáo chuyên nghiệp kèm hình ảnh biểu đồ phân tích.
 
 Output: Bao_cao_Phan_tich_Thu_nhap_Ho_Gia_dinh.docx
 """
@@ -214,14 +214,13 @@ print(f"  Income stats: Mean=${income_stats['mean']:,.0f}, Median=${income_stats
 print(f"  Outliers: {n_outliers} ({pct_outliers:.1f}%)")
 
 # ============================================================
-# PHASE 2: PREPROCESSING
+# PHASE 2: PREPROCESSING (No log transform)
 # ============================================================
 print("\n" + "=" * 70)
-print("PHASE 2: Preprocessing...")
+print("PHASE 2: Preprocessing (No log transform)...")
 print("=" * 70)
 
 df_clean = df.copy()
-df_clean['Income_log'] = np.log1p(df_clean['Income'])
 
 label_encoders = {}
 encoding_maps = {}
@@ -240,31 +239,38 @@ for col in cat_cols:
 feature_cols.extend(['Age_WorkExp_Ratio', 'Dependents_per_HHSize'])
 
 X = df_clean[feature_cols]
-y_log = df_clean['Income_log']
-y_raw = df_clean['Income']
+y = df_clean['Income']  # raw income, no log
 
-X_train, X_test, y_train_log, y_test_log = train_test_split(X, y_log, test_size=0.2, random_state=42)
-y_train_raw = np.expm1(y_train_log)
-y_test_raw = np.expm1(y_test_log)
+# ============================================================
+# PHASE 2b: TRAIN / VALIDATION / TEST SPLIT (70 / 15 / 15)
+# ============================================================
+print("\n" + "=" * 70)
+print("PHASE 2b: Train / Validation / Test split (70/15/15)...")
+print("=" * 70)
+
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.30, random_state=42)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.50, random_state=42)
 
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
 X_test_scaled = scaler.transform(X_test)
 
-print(f"  Features: {len(feature_cols)}")
-print(f"  Train/Test: {len(X_train)}/{len(X_test)}")
+print(f"  Train:      {len(X_train):,} ({len(X_train)/len(X)*100:.1f}%)")
+print(f"  Validation: {len(X_val):,} ({len(X_val)/len(X)*100:.1f}%)")
+print(f"  Test:       {len(X_test):,} ({len(X_test)/len(X)*100:.1f}%)")
 
 # ============================================================
-# PHASE 3: TRAIN ALL MODELS
+# PHASE 3: TRAIN ALL MODELS (on raw income)
 # ============================================================
 print("\n" + "=" * 70)
-print("PHASE 3: Training models...")
+print("PHASE 3: Training models (raw income, no log transform)...")
 print("=" * 70)
 
 models_config = {
     'Linear Regression': LinearRegression(),
     'Ridge Regression': Ridge(alpha=10.0),
-    'Lasso Regression': Lasso(alpha=0.01),
+    'Lasso Regression': Lasso(alpha=1.0),
     'Random Forest': RandomForestRegressor(n_estimators=300, max_depth=20, min_samples_split=5, random_state=42, n_jobs=-1),
     'Gradient Boosting': GradientBoostingRegressor(n_estimators=300, max_depth=6, learning_rate=0.05, subsample=0.8, random_state=42),
 }
@@ -272,44 +278,64 @@ models_config = {
 results = {}
 trained_models = {}
 
+
+def calc_metrics(yt, yp):
+    mae = mean_absolute_error(yt, yp)
+    rmse = float(np.sqrt(mean_squared_error(yt, yp)))
+    r2 = r2_score(yt, yp)
+    nz = np.array(yt) != 0
+    mape = float(np.mean(np.abs((np.array(yt)[nz] - np.array(yp)[nz]) / np.array(yt)[nz])) * 100)
+    return {'MAE': mae, 'RMSE': rmse, 'R2': r2, 'MAPE': mape}
+
+
 for name, model in models_config.items():
     is_tree = name in ['Random Forest', 'Gradient Boosting']
 
     if is_tree:
-        model.fit(X_train, y_train_log)
-        y_pred_log = model.predict(X_test)
-        cv_scores = cross_val_score(model, X, y_log, cv=5, scoring='r2', n_jobs=-1)
+        model.fit(X_train, y_train)
+        y_val_pred = model.predict(X_val)
+        y_test_pred = model.predict(X_test)
+        cv_scores = cross_val_score(model, X, y, cv=5, scoring='r2', n_jobs=-1)
     else:
-        model.fit(X_train_scaled, y_train_log)
-        y_pred_log = model.predict(X_test_scaled)
-        cv_scores = cross_val_score(model, scaler.fit_transform(X), y_log, cv=5, scoring='r2')
+        model.fit(X_train_scaled, y_train)
+        y_val_pred = model.predict(X_val_scaled)
+        y_test_pred = model.predict(X_test_scaled)
+        cv_scores = cross_val_score(model, scaler.transform(X), y, cv=5, scoring='r2')
 
-    y_pred_raw = np.expm1(y_pred_log)
+    val_m  = calc_metrics(y_val,  y_val_pred)
+    test_m = calc_metrics(y_test, y_test_pred)
 
     results[name] = {
-        'MAE': mean_absolute_error(y_test_raw, y_pred_raw),
-        'RMSE': float(np.sqrt(mean_squared_error(y_test_raw, y_pred_raw))),
-        'R2_raw': r2_score(y_test_raw, y_pred_raw),
-        'R2_log': r2_score(y_test_log, y_pred_log),
-        'MAPE': float(np.mean(np.abs((y_test_raw - y_pred_raw) / y_test_raw)) * 100),
+        'Val_R2':   val_m['R2'],
+        'Val_MAE':  val_m['MAE'],
+        'Val_RMSE': val_m['RMSE'],
+        'Val_MAPE': val_m['MAPE'],
+        'Test_R2':   test_m['R2'],
+        'Test_MAE':  test_m['MAE'],
+        'Test_RMSE': test_m['RMSE'],
+        'Test_MAPE': test_m['MAPE'],
         'CV_R2_Mean': cv_scores.mean(),
         'CV_R2_Std': cv_scores.std(),
-        'y_pred_log': y_pred_log,
-        'y_pred_raw': y_pred_raw,
+        'y_val_pred': y_val_pred,
+        'y_test_pred': y_test_pred,
     }
     trained_models[name] = model
-    print(f"  {name}: R2(log)={results[name]['R2_log']:.4f}, CV_R2={results[name]['CV_R2_Mean']:.4f}")
+    print(f"  {name}: Val R2={results[name]['Val_R2']:.4f}, Test R2={results[name]['Test_R2']:.4f}, CV_R2={results[name]['CV_R2_Mean']:.4f}")
 
-# Best model is Random Forest
-best_name = 'Random Forest'
+# Best model: highest Val R2
+best_name = max(results, key=lambda n: results[n]['Val_R2'])
 best_model = trained_models[best_name]
 best_results = results[best_name]
 
 # Feature importance
-fi = pd.Series(best_model.feature_importances_, index=feature_cols).sort_values(ascending=False)
+if hasattr(best_model, 'feature_importances_'):
+    fi = pd.Series(best_model.feature_importances_, index=feature_cols).sort_values(ascending=False)
+else:
+    raw = pd.Series(np.abs(best_model.coef_), index=feature_cols)
+    fi = (raw / raw.sum()).sort_values(ascending=False)
 
-print(f"\n  Best model: {best_name}")
-print(f"  R2 (log): {best_results['R2_log']:.4f}")
+print(f"\n  Best model (by Val R²): {best_name}")
+print(f"  Val R2: {best_results['Val_R2']:.4f}  Test R2: {best_results['Test_R2']:.4f}")
 
 # ============================================================
 # PHASE 4: GENERATE ALL CHARTS
@@ -319,28 +345,19 @@ print("PHASE 4: Generating charts...")
 print("=" * 70)
 
 
-# --- Chart 1: Income Distribution (Histogram) ---
+# --- Chart 1: Income Distribution (Histogram, raw only) ---
 def chart_income_distribution():
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(12, 5))
 
-    # Raw income
-    axes[0].hist(df['Income'], bins=40, color=COLORS['primary'], alpha=0.85, edgecolor='white', linewidth=0.5)
-    axes[0].set_title('Income Distribution (Original)', fontweight='bold')
-    axes[0].set_xlabel('Annual Income (USD)')
-    axes[0].set_ylabel('Frequency')
-    axes[0].xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'${x/1e6:.1f}M'))
-    axes[0].axvline(income_stats['mean'], color=COLORS['danger'], linestyle='--', linewidth=1.5, label=f"Mean: ${income_stats['mean']:,.0f}")
-    axes[0].axvline(income_stats['median'], color=COLORS['accent'], linestyle='--', linewidth=1.5, label=f"Median: ${income_stats['median']:,.0f}")
-    axes[0].legend(fontsize=7)
-
-    # Log income
-    axes[1].hist(df_clean['Income_log'], bins=40, color=COLORS['secondary'], alpha=0.85, edgecolor='white', linewidth=0.5)
-    axes[1].set_title('Log(Income) Distribution (After Transform)', fontweight='bold')
-    axes[1].set_xlabel('log(1 + Income)')
-    axes[1].set_ylabel('Frequency')
-    axes[1].axvline(df_clean['Income_log'].mean(), color=COLORS['danger'], linestyle='--', linewidth=1.5, label=f"Mean: {df_clean['Income_log'].mean():.2f}")
-    axes[1].axvline(df_clean['Income_log'].median(), color=COLORS['accent'], linestyle='--', linewidth=1.5, label=f"Median: {df_clean['Income_log'].median():.2f}")
-    axes[1].legend(fontsize=7)
+    # Raw income only (no log transform chart)
+    ax.hist(df['Income'], bins=40, color=COLORS['primary'], alpha=0.85, edgecolor='white', linewidth=0.5)
+    ax.set_title('Income Distribution (Original)', fontweight='bold')
+    ax.set_xlabel('Annual Income (USD)')
+    ax.set_ylabel('Frequency')
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'${x/1e6:.1f}M'))
+    ax.axvline(income_stats['mean'], color=COLORS['danger'], linestyle='--', linewidth=1.5, label=f"Mean: ${income_stats['mean']:,.0f}")
+    ax.axvline(income_stats['median'], color=COLORS['accent'], linestyle='--', linewidth=1.5, label=f"Median: ${income_stats['median']:,.0f}")
+    ax.legend(fontsize=8)
 
     plt.tight_layout()
     path = os.path.join(CHART_DIR, 'chart_01_income_distribution.png')
@@ -462,37 +479,49 @@ def chart_feature_importance():
     plt.close()
     return path
 
-# --- Chart 7: Model Comparison ---
+# --- Chart 7: Model Comparison (Val R2, Test R2, CV R2) ---
 def chart_model_comparison():
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
     model_names = list(results.keys())
-    r2_log_vals = [results[m]['R2_log'] for m in model_names]
-    cv_r2_vals = [results[m]['CV_R2_Mean'] for m in model_names]
-    cv_r2_std = [results[m]['CV_R2_Std'] for m in model_names]
+    val_r2  = [results[m]['Val_R2']  for m in model_names]
+    test_r2 = [results[m]['Test_R2'] for m in model_names]
+    cv_r2   = [results[m]['CV_R2_Mean'] for m in model_names]
+    cv_std  = [results[m]['CV_R2_Std']  for m in model_names]
 
-    # R2 Log Scale
     colors_bar = [COLORS['success'] if m == best_name else COLORS['primary'] for m in model_names]
-    bars = axes[0].bar(range(len(model_names)), r2_log_vals, color=colors_bar, alpha=0.9, edgecolor='white')
-    axes[0].set_xticks(range(len(model_names)))
-    axes[0].set_xticklabels([n.replace(' ', '\n') for n in model_names], fontsize=8)
-    axes[0].set_ylabel('R² Score (log scale)')
-    axes[0].set_title('Model Comparison - R² (Log Scale)', fontweight='bold')
+    short = [n.replace('Regression', 'Reg.').replace('Random ', 'RF ').replace('Gradient ', 'GB ') for n in model_names]
 
-    for bar, val in zip(bars, r2_log_vals):
-        axes[0].text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.002,
-                     f'{val:.4f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
+    def annotate(ax, vals):
+        for i, (bar, val) in enumerate(zip(ax.patches, vals)):
+            ax.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.002,
+                    f'{val:.4f}', ha='center', va='bottom', fontsize=7, fontweight='bold')
+
+    # Val R2
+    bars0 = axes[0].bar(range(len(model_names)), val_r2, color=colors_bar, alpha=0.9, edgecolor='white')
+    axes[0].set_xticks(range(len(model_names)))
+    axes[0].set_xticklabels(short, fontsize=8, rotation=10, ha='right')
+    axes[0].set_ylabel('R² Score')
+    axes[0].set_title('Validation R²', fontweight='bold')
+    annotate(axes[0], val_r2)
+
+    # Test R2
+    bars1 = axes[1].bar(range(len(model_names)), test_r2, color=colors_bar, alpha=0.7, edgecolor='white')
+    axes[1].set_xticks(range(len(model_names)))
+    axes[1].set_xticklabels(short, fontsize=8, rotation=10, ha='right')
+    axes[1].set_ylabel('R² Score')
+    axes[1].set_title('Test R²', fontweight='bold')
+    annotate(axes[1], test_r2)
 
     # CV R2 with error bars
-    axes[1].bar(range(len(model_names)), cv_r2_vals, yerr=cv_r2_std,
+    axes[2].bar(range(len(model_names)), cv_r2, yerr=cv_std,
                 color=colors_bar, alpha=0.9, edgecolor='white', capsize=5)
-    axes[1].set_xticks(range(len(model_names)))
-    axes[1].set_xticklabels([n.replace(' ', '\n') for n in model_names], fontsize=8)
-    axes[1].set_ylabel('CV R² Score (5-fold)')
-    axes[1].set_title('Cross-Validation R² (5-Fold)', fontweight='bold')
-
-    for i, (val, std) in enumerate(zip(cv_r2_vals, cv_r2_std)):
-        axes[1].text(i, val + std + 0.003, f'{val:.4f}\n±{std:.4f}',
+    axes[2].set_xticks(range(len(model_names)))
+    axes[2].set_xticklabels(short, fontsize=8, rotation=10, ha='right')
+    axes[2].set_ylabel('CV R² Score (5-fold)')
+    axes[2].set_title('Cross-Validation R²', fontweight='bold')
+    for i, (val, std) in enumerate(zip(cv_r2, cv_std)):
+        axes[2].text(i, val + std + 0.003, f'{val:.4f}\n±{std:.4f}',
                      ha='center', va='bottom', fontsize=7)
 
     plt.tight_layout()
@@ -501,28 +530,32 @@ def chart_model_comparison():
     plt.close()
     return path
 
-# --- Chart 8: Actual vs Predicted ---
+# --- Chart 8: Actual vs Predicted (Val set & Test set) ---
 def chart_actual_vs_predicted():
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    # Log scale
-    y_pred_log = best_results['y_pred_log']
-    axes[0].scatter(y_test_log, y_pred_log, alpha=0.3, s=8, color=COLORS['primary'])
-    min_val = min(y_test_log.min(), y_pred_log.min())
-    max_val = max(y_test_log.max(), y_pred_log.max())
-    axes[0].plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=1.5, label='Perfect Prediction')
-    axes[0].set_xlabel('Actual log(Income)')
-    axes[0].set_ylabel('Predicted log(Income)')
-    axes[0].set_title(f'Actual vs Predicted (Log Scale)\nR² = {best_results["R2_log"]:.4f}', fontweight='bold')
-    axes[0].legend()
+    # Validation set
+    y_val_pred = best_results['y_val_pred']
+    axes[0].scatter(y_val, y_val_pred, alpha=0.3, s=8, color=COLORS['primary'])
+    min_v = min(y_val.min(), y_val_pred.min())
+    max_v = max(y_val.max(), y_val_pred.max())
+    axes[0].plot([min_v, max_v], [min_v, max_v], 'r--', linewidth=1.5, label='Perfect Prediction')
+    axes[0].set_xlabel('Actual Income')
+    axes[0].set_ylabel('Predicted Income')
+    axes[0].set_title(f'Actual vs Predicted (Validation Set)\nR² = {best_results["Val_R2"]:.4f}', fontweight='bold')
+    axes[0].xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'${x/1e6:.1f}M'))
+    axes[0].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'${x/1e6:.1f}M'))
+    axes[0].legend(fontsize=8)
 
-    # Residual distribution
-    residuals = y_test_log.values - y_pred_log
+    # Residual distribution (Test set)
+    y_test_pred = best_results['y_test_pred']
+    residuals = np.array(y_test) - np.array(y_test_pred)
     axes[1].hist(residuals, bins=40, color=COLORS['secondary'], alpha=0.85, edgecolor='white')
     axes[1].axvline(0, color=COLORS['danger'], linestyle='--', linewidth=1.5)
+    axes[1].xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'${x/1e3:.0f}K'))
     axes[1].set_xlabel('Residual (Actual - Predicted)')
     axes[1].set_ylabel('Frequency')
-    axes[1].set_title(f'Residual Distribution\nMean={residuals.mean():.4f}, Std={residuals.std():.4f}', fontweight='bold')
+    axes[1].set_title(f'Residual Distribution (Test Set)\nMean=${residuals.mean():,.0f}  Std=${residuals.std():,.0f}', fontweight='bold')
 
     plt.tight_layout()
     path = os.path.join(CHART_DIR, 'chart_08_actual_vs_predicted.png')
@@ -641,7 +674,7 @@ def chart_learning_curve():
     # Use a smaller RF for speed
     rf_lc = RandomForestRegressor(n_estimators=100, max_depth=15, random_state=42, n_jobs=-1)
     train_sizes, train_scores, test_scores = learning_curve(
-        rf_lc, X, y_log, cv=5, n_jobs=-1,
+        rf_lc, X, y, cv=5, n_jobs=-1,
         train_sizes=np.linspace(0.1, 1.0, 10),
         scoring='r2'
     )
@@ -1001,14 +1034,14 @@ add_body_text(doc,
 # 3.1 Income Distribution
 add_heading_styled(doc, '3.1. Phân phối thu nhập', level=2)
 add_body_text(doc,
-    f'Biểu đồ dưới đây so sánh phân phối thu nhập gốc (trái) với phân phối sau khi áp dụng '
-    f'phép biến đổi logarit (phải). Thu nhập gốc có phân phối lệch phải rất mạnh '
-    f'(skewness = {income_stats["skew"]:.2f}), trong khi phép biến đổi log giúp giảm đáng kể '
-    f'độ lệch (skewness sau biến đổi = {df_clean["Income_log"].skew():.2f}), '
-    f'tạo điều kiện thuận lợi hơn cho các mô hình hồi quy.'
+    f'Biểu đồ dưới đây thể hiện phân phối thu nhập gốc cùng với các chỉ số tổng hợp. '
+    f'Thu nhập có phân phối lệch phải rất mạnh '
+    f'(skewness = {income_stats["skew"]:.2f}), với khoảng cách lớn giữa trung bình (${income_stats["mean"]:,.0f}) '
+    f'và trung vị (${income_stats["median"]:,.0f}). '
+    f'Các mô hình được huấn luyện trực tiếp trên giá trị thu nhập gốc (không log transform).'
 )
 add_chart_to_doc(doc, chart_paths['income_dist'],
-    'Hình 3.1: Phân phối thu nhập - Gốc (trái) và sau biến đổi Log (phải)')
+    'Hình 3.1: Phân phối thu nhập hộ gia đình (Income Distribution)')
 
 # 3.2 Education
 add_heading_styled(doc, '3.2. Phân tích theo trình độ học vấn', level=2)
@@ -1131,21 +1164,14 @@ add_body_text(doc,
     'Quá trình tiền xử lý dữ liệu bao gồm các bước chính sau:'
 )
 
-add_heading_styled(doc, '4.1. Biến đổi biến mục tiêu (Log Transform)', level=2)
-add_body_text(doc,
-    f'Do thu nhập có phân phối lệch phải rất mạnh (skewness = {income_stats["skew"]:.2f}), '
-    f'phép biến đổi log1p (log(1+x)) được áp dụng để giảm skewness xuống còn '
-    f'{df_clean["Income_log"].skew():.2f}. Điều này giúp mô hình hồi quy hoạt động hiệu quả hơn.'
-)
-
-add_heading_styled(doc, '4.2. Mã hóa biến phân loại (Label Encoding)', level=2)
+add_heading_styled(doc, '4.1. Mã hóa biến phân loại (Label Encoding)', level=2)
 add_body_text(doc,
     '9 biến phân loại được mã hóa bằng phương pháp Label Encoding, chuyển đổi '
     'các giá trị text thành các số nguyên. Phương pháp này phù hợp với mô hình Random Forest '
     'vì cây quyết định có thể xử lý tốt các giá trị ordinal.'
 )
 
-add_heading_styled(doc, '4.3. Tạo đặc trưng mới (Feature Engineering)', level=2)
+add_heading_styled(doc, '4.2. Tạo đặc trưng mới (Feature Engineering)', level=2)
 add_body_text(doc, 'Hai đặc trưng mới được tạo ra nhằm nắm bắt thêm thông tin:')
 
 add_formatted_table(doc,
@@ -1157,78 +1183,94 @@ add_formatted_table(doc,
     col_widths=[5, 5, 7]
 )
 
-add_heading_styled(doc, '4.4. Chuẩn hóa đặc trưng (Standard Scaling)', level=2)
+add_heading_styled(doc, '4.3. Chuẩn hóa đặc trưng (Standard Scaling)', level=2)
 add_body_text(doc,
     'StandardScaler được áp dụng để chuẩn hóa các đặc trưng về trung bình = 0 và độ lệch chuẩn = 1. '
     'Lưu ý: Đối với mô hình Random Forest, bước chuẩn hóa không bắt buộc vì cây quyết định '
-    'không nhạy cảm với scale của dữ liệu. Tuy nhiên, nó cần thiết cho các mô hình Linear/Ridge/Lasso '
-    'được sử dụng trong so sánh.'
+    'không nhạy cảm với scale của dữ liệu. Tuy nhiên, nó cần thiết cho các mô hình Linear/Ridge/Lasso.'
 )
 
-add_heading_styled(doc, '4.5. Chia tập dữ liệu', level=2)
+add_heading_styled(doc, '4.4. Chia tập dữ liệu (70 / 15 / 15)', level=2)
 add_body_text(doc,
-    f'Dữ liệu được chia thành tập huấn luyện ({len(X_train):,} mẫu — 80%) '
-    f'và tập kiểm tra ({len(X_test):,} mẫu — 20%) với random_state=42 '
-    f'để đảm bảo tính tái lập của kết quả.'
+    f'Dữ liệu được chia thành ba tập: '
+    f'Huấn luyện ({len(X_train):,} mẫu — 70%), '
+    f'Kiểm định ({len(X_val):,} mẫu — 15%) và '
+    f'Kiểm tra ({len(X_test):,} mẫu — 15%). '
+    f'Việc tách biệt tập kiểm định (validation) và kiểm tra (test) giúp chọn mô hình '
+    f'không bị rò rỉ thông tin từ quá trình lựa chọn.'
+)
+
+add_body_text(doc,
+    'Không áp dụng biến đổi logarit — các mô hình được huấn luyện trực tiếp trên giá trị thu nhập gốc.'
 )
 
 doc.add_page_break()
 
 # ===================== SECTION 5: MODEL =====================
-add_heading_styled(doc, '5. Xây dựng mô hình Random Forest', level=1)
+add_heading_styled(doc, '5. Xây dựng mô hình hồi quy', level=1)
 
 add_body_text(doc,
-    'Random Forest Regression là thuật toán ensemble learning kết hợp nhiều cây quyết định (decision trees) '
-    'để tạo ra dự đoán chính xác hơn. Thuật toán sử dụng kỹ thuật bagging (Bootstrap Aggregating) '
-    'và random feature selection để giảm overfitting và tăng tính tổng quát hóa.'
+    '5 mô hình hồi quy được huấn luyện và so sánh trực tiếp trên giá trị thu nhập gốc (không log transform), '
+    'sử dụng phân hoạch 70/15/15 (Train/Validation/Test). '
+    'mô hình tốt nhất được chọn theo Validation R².'
 )
 
 # 5.1 Configuration
-add_heading_styled(doc, '5.1. Cấu hình mô hình', level=2)
+add_heading_styled(doc, '5.1. Cấu hình các mô hình', level=2)
 
 add_formatted_table(doc,
-    ['Tham số', 'Giá trị', 'Mô tả'],
-    [
-        ['Algorithm', 'RandomForestRegressor', 'Thuật toán Random Forest cho bài toán hồi quy'],
-        ['n_estimators', '300', 'Số lượng cây quyết định trong rừng'],
-        ['max_depth', '20', 'Độ sâu tối đa của mỗi cây'],
-        ['min_samples_split', '5', 'Số mẫu tối thiểu để chia nút'],
-        ['Target Transform', 'log1p(Income)', 'Biến đổi log cho biến mục tiêu'],
-        ['Train/Test Split', '80/20', 'Tỷ lệ chia dữ liệu'],
-        ['Cross-Validation', '5-fold', 'Đánh giá chéo 5 lần'],
-        ['random_state', '42', 'Seed để tái lập kết quả'],
-        ['n_jobs', '-1', 'Sử dụng tất cả CPU cores'],
-    ],
-    col_widths=[4, 4, 8.5]
+    ['Mô hình', 'Thuật toán', 'Tham số ch�add_body_text(doc,
+    '5 mô hình hồi quy được huấn luyện và so sánh trên cùng tập dữ liệu, '
+    'dự đoán trực tiếp trên thu nhập gốc (không log transform). '
+    'Mô hình tốt nhất được chọn theo Validation R² cao nhất.'
 )
 
-# 5.2 Performance
-doc.add_paragraph()
-add_heading_styled(doc, '5.2. Hiệu suất mô hình', level=2)
+# Comparison table
+comp_rows = []
+for name in sorted(results, key=lambda n: results[n]['Val_R2'], reverse=True):
+    r = results[name]
+    is_best = '⋆ ' if name == best_name else ''
+    comp_rows.append([
+        f'{is_best}{name}',
+        f'{r["Val_R2"]:.4f}',
+        f'{r["Test_R2"]:.4f}',
+        f'{r["CV_R2_Mean"]:.4f} ± {r["CV_R2_Std"]:.4f}',
+        f'${r["Val_MAE"]:,.0f}',
+        f'${r["Val_RMSE"]:,.0f}',
+        f'{r["Val_MAPE"]:.2f}%',
+    ])
+
+add_formatted_table(doc,
+    ['Mô hình', 'Val R²', 'Test R²', 'CV R² (5-fold)', 'Val MAE', 'Val RMSE', 'Val MAPE'],
+    comp_rows,
+    col_widths=[3.5, 1.8, 1.8, 3.5, 2.5, 2.5, 1.9]
+)
 
 add_body_text(doc,
-    'Bảng dưới đây tóm tắt các chỉ số đánh giá hiệu suất của mô hình Random Forest '
-    'trên tập kiểm tra (test set):'
+    f'{best_name} đạt Val R² = {best_results["Val_R2"]:.4f} — cao nhất trong 5 mô hình. '
+    f'Kết quả này khẳng định rằng mối quan hệ giữa đặc trưng và thu nhập có tính phi tuyến, '
+    f'phù hợp với khả năng của mô hình dựa trên cây quyết định.',
+)n và Test set:'
 )
 
 add_formatted_table(doc,
-    ['Chỉ số', 'Giá trị', 'Giải thích'],
+    ['Chỉ số', 'Validation', 'Test', 'Giải thích'],
     [
-        ['R² (log scale)', f'{best_results["R2_log"]:.4f}', 'Phương sai giải thích được trên thang log'],
-        ['CV R² (5-fold)', f'{best_results["CV_R2_Mean"]:.4f} ± {best_results["CV_R2_Std"]:.4f}', 'R² trung bình qua 5 lần cross-validation'],
-        ['MAE', f'${best_results["MAE"]:,.2f}', 'Sai số tuyệt đối trung bình'],
-        ['RMSE', f'${best_results["RMSE"]:,.2f}', 'Căn bậc hai sai số bình phương trung bình'],
-        ['MAPE', f'{best_results["MAPE"]:.2f}%', 'Sai số phần trăm tuyệt đối trung bình'],
+        ['R²',   f'{best_results["Val_R2"]:.4f}',  f'{best_results["Test_R2"]:.4f}',  'Phương sai giải thích được'],
+        ['MAE',  f'${best_results["Val_MAE"]:,.2f}',  f'${best_results["Test_MAE"]:,.2f}',  'Sai số tuyệt đối trung bình'],
+        ['RMSE', f'${best_results["Val_RMSE"]:,.2f}', f'${best_results["Test_RMSE"]:,.2f}', 'Căn bậc hai sai số bình phương TB'],
+        ['MAPE', f'{best_results["Val_MAPE"]:.2f}%',  f'{best_results["Test_MAPE"]:.2f}%',  'Sai số phần trăm tuyệt đối TB'],
+        ['CV R² (5-fold)', f'{best_results["CV_R2_Mean"]:.4f} ± {best_results["CV_R2_Std"]:.4f}', '--', 'Đánh giá chéo 5 lần'],
     ],
-    col_widths=[4, 5, 7.5],
+    col_widths=[3, 3.5, 3.5, 6.5],
     header_color='A23B72'
 )
 
 add_body_text(doc,
-    f'Lưu ý: Giá trị R² trên thang gốc (raw scale) là {best_results["R2_raw"]:.4f}, '
-    f'cho thấy mô hình giải thích được khoảng {best_results["R2_log"]*100:.1f}% phương sai của log(Income). '
-    f'Mức R² khiêm tốn này phản ánh tính chất nhiễu cao (high noise) của bộ dữ liệu tổng hợp, '
-    f'tuy nhiên Random Forest vẫn đạt hiệu suất tốt nhất trong số 5 mô hình được thử nghiệm.'
+    f'Mô hình {best_name} đã cho thấy khả năng dự đoán tốt nhất trên tập Validation '
+    f'(Val R² = {best_results["Val_R2"]:.4f}), và kết quả nhất quán trên Test set '
+    f'(Test R² = {best_results["Test_R2"]:.4f}). '
+    f'CV R² = {best_results["CV_R2_Mean"]:.4f} ± {best_results["CV_R2_Std"]:.4f} cho thấy mô hình ổn định qua các fold.'
 )
 
 # Actual vs Predicted chart
@@ -1273,10 +1315,7 @@ add_body_text(doc,
 )
 
 add_chart_to_doc(doc, chart_paths['model_comp'],
-    'Hình 5.2: So sánh R² (trái) và Cross-Validation R² (phải) giữa các mô hình')
-
-add_chart_to_doc(doc, chart_paths['error_comp'],
-    'Hình 5.3: So sánh MAE (trái) và RMSE (phải) giữa các mô hình')
+    'Hình 5.2: So sánh Validation R², Test R² và Cross-Validation R² giữa các mô hình')
 
 doc.add_page_break()
 
@@ -1284,9 +1323,9 @@ doc.add_page_break()
 add_heading_styled(doc, '5.4. Phân tích tầm quan trọng đặc trưng', level=2)
 
 add_body_text(doc,
-    'Feature Importance từ mô hình Random Forest cho biết mức độ đóng góp của từng đặc trưng '
-    'vào khả năng dự báo. Đặc trưng được tạo mới "Age_WorkExp_Ratio" đóng vai trò quan trọng nhất '
-    'với 17.08%, tiếp theo là Work_Experience (13.40%) và Age (12.26%).'
+    f'Feature Importance từ mô hình {best_name} cho biết mức độ đóng góp của từng đặc trưng '
+    'vào khả năng dự báo. '
+    'Các đặc trưng được tạo mới từ Feature Engineering thường đóng vai trò quan trọng đặc biệt.'
 )
 
 fi_rows = []
@@ -1302,18 +1341,18 @@ add_formatted_table(doc,
 
 doc.add_paragraph()
 add_chart_to_doc(doc, chart_paths['feat_imp'],
-    'Hình 5.4: Tầm quan trọng đặc trưng của Random Forest')
+    f'Hình 5.4: Tầm quan trọng đặc trưng của {best_name}')
 
 add_body_text(doc,
     'Nhận xét chính từ phân tích Feature Importance:', bold=True
 )
 
 insights = [
-    'Tỷ lệ Tuổi/Kinh nghiệm (17.08%) là yếu tố quan trọng nhất — cho thấy thời điểm bắt đầu sự nghiệp có ảnh hưởng lớn.',
-    'Kinh nghiệm làm việc (13.40%) và Tuổi (12.26%) đứng thứ hai và ba — phản ánh vai trò của kinh nghiệm tích lũy.',
-    'Tỷ lệ phụ thuộc/quy mô hộ (8.88%) cũng có đóng góp đáng kể — gánh nặng tài chính ảnh hưởng đến mức thu nhập.',
-    'Nghề nghiệp (7.81%) quan trọng hơn Trình độ học vấn (4.87%) — lĩnh vực làm việc có tác động trực tiếp hơn.',
-    'Giới tính (1.86%) có ảnh hưởng thấp nhất — cho thấy sự bình đẳng giới trong dữ liệu này.'
+    'Các đặc trưng liên quan đến tuổi và kinh nghiệm làm việc thường chiếm tỷ lệ quan trọng nhất.',
+    'Đặc trưng được tạo mới Age_WorkExp_Ratio nắm bắt thông tin tổng hợp hơn từng biến riêng lẻ.',
+    'Nghề nghiệp (Occupation) thường quan trọng hơn Trình độ học vấn trong dự đoán thu nhập.',
+    'Giới tính có ảnh hưởng thấp nhất — cho thấy sự bình đẳng giới trong bộ dữ liệu này.',
+    'Tỷ lệ người phụ thuộc (Dependents_per_HHSize) phản ánh gánh nặng tài chính đóng vai trò đáng kể.',
 ]
 
 for insight in insights:
@@ -1350,17 +1389,18 @@ add_heading_styled(doc, '6. Đánh giá và thảo luận', level=1)
 
 add_heading_styled(doc, '6.1. Đánh giá tổng thể', level=2)
 add_body_text(doc,
-    'Mô hình Random Forest Regression đã cho thấy khả năng nắm bắt các mối quan hệ phi tuyến '
-    'trong dữ liệu tốt hơn đáng kể so với các mô hình tuyến tính (Linear, Ridge, Lasso). '
-    'Cụ thể, R² trên thang log đạt 0.1472 — cao gấp gần 4.5 lần so với mô hình tuyến tính tốt nhất (0.0326).'
+    f'Mô hình {best_name} được chọn là tốt nhất với Val R² = {best_results["Val_R2"]:.4f} '
+    f'và Test R² = {best_results["Test_R2"]:.4f}. Mô hình này cho thấy khả năng nắm bắt '
+    f'các mối quan hệ phi tuyến trong dữ liệu tốt hơn đáng kể so với các mô hình tuyến tính.'
 )
 
 add_heading_styled(doc, '6.2. Phân tích hạn chế', level=2)
 limitations = [
     'Tính nhiễu cao của dữ liệu: Bộ dữ liệu tổng hợp chứa nhiều nhiễu ngẫu nhiên, hạn chế khả năng dự báo chính xác của bất kỳ mô hình nào.',
-    'R² khiêm tốn: Giá trị R² = 0.1472 cho thấy mô hình chỉ giải thích được ~15% phương sai, 85% còn lại là do các yếu tố không có trong dữ liệu.',
-    'MAPE cao (139.69%): Sai số phần trăm lớn, đặc biệt ở các hộ có thu nhập thấp.',
+    f'R² khiêm tốn: Giá trị Test R² = {best_results["Test_R2"]:.4f} cho thấy mô hình chỉ giải thích được ~{best_results["Test_R2"]*100:.0f}% phương sai, phần còn lại là do các yếu tố không có trong dữ liệu.',
+    f'MAPE cao ({best_results["Val_MAPE"]:.1f}%): Sai số phần trăm lớn, đặc biệt ở các hộ có thu nhập thấp.',
     'Hạn chế của Label Encoding: Phương pháp này có thể tạo ra thứ tự giả tạo cho các biến phân loại danh nghĩa.',
+    'Không dùng log transform: Phân phối thu nhập lệch phải mạnh có thể làm giảm hiệu suất của mô hình tuyến tính, nhưng ít ảnh hưởng hơn đến mô hình dựa trên cây.',
 ]
 
 for lim in limitations:
@@ -1375,7 +1415,8 @@ advantages = [
     'Không nhạy cảm với scale: Không yêu cầu chuẩn hóa dữ liệu đầu vào.',
     'Feature Importance tích hợp: Cung cấp thông tin hữu ích về tầm quan trọng của từng đặc trưng.',
     'Giảm overfitting: Kỹ thuật bagging và random feature selection giúp tăng tính tổng quát.',
-    'Hiệu suất ổn định: CV R² = 0.1527 ± 0.011 cho thấy mô hình ổn định qua các fold.',
+    f'Hiệu suất ổn định: CV R² = {best_results["CV_R2_Mean"]:.4f} ± {best_results["CV_R2_Std"]:.4f} cho thấy mô hình ổn định qua các fold.',
+    'Không cần log transform: Mô hình dựa trên cây hoạt động tốt trực tiếp trên thu nhập gốc.',
 ]
 
 for adv in advantages:
@@ -1395,9 +1436,9 @@ add_body_text(doc,
 )
 
 conclusions = [
-    'Random Forest Regression là mô hình phù hợp nhất cho bài toán dự báo thu nhập hộ gia đình trong bộ dữ liệu này, với R² (log) = 0.1472 và CV R² = 0.1527.',
-    'Tỷ lệ Tuổi/Kinh nghiệm, Kinh nghiệm làm việc và Tuổi là 3 yếu tố quan trọng nhất ảnh hưởng đến thu nhập, chiếm tổng cộng 42.74% tầm quan trọng.',
-    'Phân phối thu nhập có độ lệch rất cao (skewness = 2.98), đòi hỏi phép biến đổi log để cải thiện hiệu suất mô hình.',
+    f'{best_name} là mô hình phù hợp nhất cho bài toán dự báo thu nhập hộ gia đình, với Val R² = {best_results["Val_R2"]:.4f}, Test R² = {best_results["Test_R2"]:.4f} và CV R² = {best_results["CV_R2_Mean"]:.4f}.',
+    'Tỷ lệ Tuổi/Kinh nghiệm, Kinh nghiệm làm việc và Tuổi là 3 yếu tố quan trọng nhất ảnh hưởng đến thu nhập.',
+    'Mô hình được chọn theo Validation R² và kết quả được báo cáo chính thức trên Test set độc lập (phân hoạch 70/15/15).',
     'Không có sự khác biệt đáng kể về thu nhập giữa các nhóm giới tính, trình độ học vấn hay khu vực trong bộ dữ liệu này.',
     'Tính chất nhiễu cao của dữ liệu tổng hợp hạn chế khả năng đạt R² cao, nhưng mô hình vẫn cho kết quả có ý nghĩa thống kê.',
 ]

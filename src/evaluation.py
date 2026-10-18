@@ -2,7 +2,7 @@
 evaluation.py - Model evaluation utilities for household income prediction.
 
 Provides functions to compute regression metrics, cross-validation scores,
-and feature importance extraction.
+and feature importance extraction. Works on raw (untransformed) income values.
 """
 
 import numpy as np
@@ -12,40 +12,37 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
 def evaluate_model(
-    y_true_raw: np.ndarray,
-    y_pred_raw: np.ndarray,
-    y_true_log: np.ndarray = None,
-    y_pred_log: np.ndarray = None,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
 ) -> dict:
     """
-    Compute regression evaluation metrics.
+    Compute regression evaluation metrics on raw income values.
 
     Parameters
     ----------
-    y_true_raw : np.ndarray
-        Actual income values (original scale).
-    y_pred_raw : np.ndarray
-        Predicted income values (original scale).
-    y_true_log : np.ndarray, optional
-        Actual log-transformed income values.
-    y_pred_log : np.ndarray, optional
-        Predicted log-transformed income values.
+    y_true : np.ndarray
+        Actual income values.
+    y_pred : np.ndarray
+        Predicted income values.
 
     Returns
     -------
     dict
         Dictionary of metric names and values.
     """
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    # Avoid division by zero in MAPE
+    nonzero_mask = y_true != 0
+    mape = float(np.mean(np.abs((y_true[nonzero_mask] - y_pred[nonzero_mask]) / y_true[nonzero_mask])) * 100)
+
     metrics = {
-        'MAE': mean_absolute_error(y_true_raw, y_pred_raw),
-        'RMSE': float(np.sqrt(mean_squared_error(y_true_raw, y_pred_raw))),
-        'R2': r2_score(y_true_raw, y_pred_raw),
-        'MAPE': float(np.mean(np.abs((y_true_raw - y_pred_raw) / y_true_raw)) * 100),
+        'MAE': float(mean_absolute_error(y_true, y_pred)),
+        'RMSE': float(np.sqrt(mean_squared_error(y_true, y_pred))),
+        'R2': float(r2_score(y_true, y_pred)),
+        'MAPE': mape,
     }
-
-    if y_true_log is not None and y_pred_log is not None:
-        metrics['R2_log'] = r2_score(y_true_log, y_pred_log)
-
     return metrics
 
 
@@ -66,7 +63,7 @@ def cross_validate_model(
     X : np.ndarray
         Feature matrix.
     y : np.ndarray
-        Target vector.
+        Target vector (raw income).
     cv : int
         Number of cross-validation folds.
     scoring : str
@@ -117,7 +114,7 @@ def get_feature_importance(model, feature_names: list[str]) -> pd.Series:
 
 def format_results_table(results: dict) -> pd.DataFrame:
     """
-    Format model results into a comparison DataFrame.
+    Format model results into a comparison DataFrame sorted by validation R².
 
     Parameters
     ----------
@@ -127,8 +124,8 @@ def format_results_table(results: dict) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Sorted by R2_log descending.
+        Sorted by Val_R2 descending (or R2 if Val_R2 not present).
     """
     df = pd.DataFrame(results).T
-    sort_col = 'R2_log' if 'R2_log' in df.columns else 'R2'
+    sort_col = 'Val_R2' if 'Val_R2' in df.columns else 'R2'
     return df.sort_values(sort_col, ascending=False)
